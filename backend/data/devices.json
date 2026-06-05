@@ -1,0 +1,36 @@
+{
+  "devices": [
+    {
+      "id": "light-1",
+      "type": "light",
+      "name": "客厅主灯",
+      "position": { "x": 0, "y": 2.8, "z": 0 },
+      "rotation": { "x": 0, "y": 0, "z": 0 },
+      "state": { "on": true, "brightness": 80, "color": "#ffffff" }
+    },
+    {
+      "id": "ac-1",
+      "type": "ac",
+      "name": "客厅空调",
+      "position": { "x": -3.5, "y": 2, "z": -3.5 },
+      "rotation": { "x": 0, "y": 0.785, "z": 0 },
+      "state": { "on": true, "temperature": 24, "mode": "cool" }
+    },
+    {
+      "id": "tv-1",
+      "type": "tv",
+      "name": "客厅电视",
+      "position": { "x": 0, "y": 1.2, "z": -3.8 },
+      "rotation": { "x": 0, "y": 0, "z": 0 },
+      "state": { "on": false, "volume": 50, "channel": 1 }
+    },
+    {
+      "id": "light-2",
+      "type": "lamp",
+      "name": "落地灯",
+      "position": { "x": 2.5, "y": 0, "z": 2 },
+      "rotation": { "x": 0, "y": -1.047, "z": 0 },
+      "state": { "on": true, "brightness": 60, "color": "#ffd700" }
+    }
+  ]
+}
