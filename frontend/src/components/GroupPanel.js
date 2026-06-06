@@ -116,7 +116,7 @@ function GroupControls({ devices, onStateChange }) {
     ? devices.find(d => d.type === 'ac')?.state?.mode || 'cool'
     : 'cool';
 
-  const avgVolume = hasSpeaker
+  const avgVolume = (hasSpeaker || hasTV)
     ? Math.round(devices.filter(d => d.type === 'speaker' || d.type === 'tv').reduce((sum, d) => sum + (d.state?.volume || 50), 0) /
         devices.filter(d => d.type === 'speaker' || d.type === 'tv').length)
     : 50;

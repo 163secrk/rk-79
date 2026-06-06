@@ -664,6 +664,36 @@ function App() {
     setSelectedDevice(null);
   }, []);
 
+  const getGroupStatePreview = (targetState) => {
+    const parts = [];
+    if (targetState.on !== undefined) {
+      parts.push(targetState.on ? '开启' : '关闭');
+    }
+    if (targetState.brightness !== undefined) {
+      parts.push(`亮度${targetState.brightness}%`);
+    }
+    if (targetState.temperature !== undefined) {
+      parts.push(`${targetState.temperature}°C`);
+    }
+    if (targetState.volume !== undefined) {
+      parts.push(`音量${targetState.volume}`);
+    }
+    if (targetState.mode !== undefined) {
+      const modeNames = { cool: '制冷', heat: '制热', auto: '自动', dry: '除湿' };
+      parts.push(modeNames[targetState.mode] || targetState.mode);
+    }
+    if (targetState.color !== undefined) {
+      parts.push(`颜色${targetState.color}`);
+    }
+    if (targetState.openPercent !== undefined) {
+      parts.push(`开合度${targetState.openPercent}%`);
+    }
+    if (targetState.recording !== undefined) {
+      parts.push(targetState.recording ? '录像中' : '未录像');
+    }
+    return parts.join(' · ');
+  };
+
   const handleGroupStateChange = useCallback(async (groupId, state) => {
     try {
       await updateGroupState(groupId, state);
@@ -680,7 +710,8 @@ function App() {
             : prev
         );
       }
-      showMessage(`已${state.on ? '开启' : '关闭'} ${group?.name || '分组'}`, 'success');
+      const preview = getGroupStatePreview(state);
+      showMessage(`${group?.name || '分组'}: ${preview}`, 'success');
     } catch (err) {
       console.error('Failed to update group state:', err);
       const group = groups.find(g => g.id === groupId);
@@ -691,7 +722,8 @@ function App() {
             : d
         ));
       }
-      showMessage(`已${state.on ? '开启' : '关闭'} ${group?.name || '分组'}`, 'success');
+      const preview = getGroupStatePreview(state);
+      showMessage(`${group?.name || '分组'}: ${preview}`, 'success');
     }
   }, [groups, showMessage]);
 
@@ -1037,9 +1069,11 @@ function App() {
     setSelectedGroup(null);
   };
 
-  const handleSceneClick = () => {
-    setSelectedDevice(null);
-    setSelectedGroup(null);
+  const handleSceneClick = (e) => {
+    if (e.target.classList.contains('scene-container')) {
+      setSelectedDevice(null);
+      setSelectedGroup(null);
+    }
   };
 
   return (
