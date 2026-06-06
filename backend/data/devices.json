@@ -42,8 +42,8 @@
       },
       "state": {
         "on": true,
-        "temperature": 30,
-        "mode": "heat",
+        "temperature": 24,
+        "mode": "cool",
         "brightness": 29,
         "color": "#c48787"
       }

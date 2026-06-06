@@ -137,6 +137,31 @@ export const activateScene = async (id) => {
   return response.data;
 };
 
+export const deactivateScene = async () => {
+  const response = await api.post('/scenes/deactivate');
+  return response.data;
+};
+
+export const getSceneConflicts = async (id) => {
+  const response = await api.get(`/scenes/${id}/conflicts`);
+  return response.data;
+};
+
+export const getAutomationConflicts = async (id) => {
+  const response = await api.get(`/automations/${id}/conflicts`);
+  return response.data;
+};
+
+export const checkConflicts = async (type, id) => {
+  const response = await api.get(`/conflicts/check?type=${type}&id=${id}`);
+  return response.data;
+};
+
+export const getSystemState = async () => {
+  const response = await api.get('/system-state');
+  return response.data;
+};
+
 export const getAutomations = async () => {
   const response = await api.get('/automations');
   return response.data;

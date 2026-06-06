@@ -10,8 +10,12 @@ const DATA_FILE = path.join(__dirname, 'data', 'devices.json');
 const SCHEDULE_FILE = path.join(__dirname, 'data', 'schedules.json');
 const GROUP_FILE = path.join(__dirname, 'data', 'groups.json');
 const ROOM_FILE = path.join(__dirname, 'data', 'rooms.json');
+const SCENE_FILE = path.join(__dirname, 'data', 'scenes.json');
+const AUTOMATION_FILE = path.join(__dirname, 'data', 'automations.json');
+const SYSTEM_STATE_FILE = path.join(__dirname, 'data', 'systemState.json');
 
 const activeJobs = new Map();
+const automationJobs = new Map();
 
 app.use(cors());
 app.use(express.json());
@@ -41,6 +45,94 @@ const ensureRoomFile = async () => {
   const exists = await fs.pathExists(ROOM_FILE);
   if (!exists) {
     await fs.outputJson(ROOM_FILE, { rooms: [] });
+  }
+};
+
+const ensureSceneFile = async () => {
+  const exists = await fs.pathExists(SCENE_FILE);
+  if (!exists) {
+    const presetScenes = [
+      {
+        id: 'scene-leaving',
+        name: '离家模式',
+        icon: '🚪',
+        color: '#f59e0b',
+        description: '关闭所有灯光和电器，开启摄像头录像',
+        isPreset: true,
+        deviceStates: [],
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'scene-sleep',
+        name: '睡眠模式',
+        icon: '💤',
+        color: '#6366f1',
+        description: '关闭主灯，调暗空调，开启静音模式',
+        isPreset: true,
+        deviceStates: [],
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'scene-movie',
+        name: '影院模式',
+        icon: '🎬',
+        color: '#ec4899',
+        description: '调暗灯光，开启电视和音响',
+        isPreset: true,
+        deviceStates: [],
+        createdAt: new Date().toISOString()
+      }
+    ];
+    await fs.outputJson(SCENE_FILE, { scenes: presetScenes });
+  }
+};
+
+const ensureAutomationFile = async () => {
+  const exists = await fs.pathExists(AUTOMATION_FILE);
+  if (!exists) {
+    const presetAutomations = [
+      {
+        id: 'auto-evening-light',
+        name: '傍晚自动开灯',
+        description: '每天18:00自动开启客厅主灯',
+        enabled: true,
+        isPreset: true,
+        trigger: {
+          type: 'time',
+          condition: 'time_equals',
+          value: '18:00'
+        },
+        actions: [],
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'auto-hot-ac',
+        name: '高温自动开空调',
+        description: '当客厅温度高于28°C时自动开启空调',
+        enabled: true,
+        isPreset: true,
+        trigger: {
+          type: 'device_state',
+          deviceId: 'ac-1',
+          condition: 'temperature_above',
+          value: 28
+        },
+        actions: [],
+        createdAt: new Date().toISOString()
+      }
+    ];
+    await fs.outputJson(AUTOMATION_FILE, { automations: presetAutomations });
+  }
+};
+
+const ensureSystemStateFile = async () => {
+  const exists = await fs.pathExists(SYSTEM_STATE_FILE);
+  if (!exists) {
+    await fs.outputJson(SYSTEM_STATE_FILE, {
+      activeSceneId: null,
+      activeSceneActivatedAt: null,
+      lastDeviceStates: {}
+    });
   }
 };
 
@@ -94,6 +186,186 @@ const loadSchedules = async () => {
   } catch (err) {
     console.error('Error loading schedules:', err);
   }
+};
+
+const executeAutomation = async (automation) => {
+  try {
+    const systemState = await fs.readJson(SYSTEM_STATE_FILE);
+    
+    if (systemState.activeSceneId) {
+      console.log(`[${new Date().toLocaleString()}] Automation ${automation.id} skipped: active scene present`);
+      return { skipped: true, reason: 'active_scene' };
+    }
+
+    const deviceData = await fs.readJson(DATA_FILE);
+    const updatedDevices = [];
+    
+    for (const action of automation.actions) {
+      const deviceIndex = deviceData.devices.findIndex(d => d.id === action.deviceId);
+      if (deviceIndex !== -1) {
+        deviceData.devices[deviceIndex].state = {
+          ...deviceData.devices[deviceIndex].state,
+          ...action.state
+        };
+        updatedDevices.push(deviceData.devices[deviceIndex]);
+      }
+    }
+    
+    if (updatedDevices.length > 0) {
+      await fs.writeJson(DATA_FILE, deviceData, { spaces: 2 });
+      console.log(`[${new Date().toLocaleString()}] Executed automation ${automation.id}: ${automation.name}`);
+      return { success: true, updatedDevices };
+    }
+    
+    return { success: false, reason: 'no_devices' };
+  } catch (err) {
+    console.error('Error executing automation:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+const checkAutomationCondition = async (automation) => {
+  try {
+    const deviceData = await fs.readJson(DATA_FILE);
+    const trigger = automation.trigger;
+
+    if (trigger.type === 'time') {
+      const now = new Date();
+      const [hour, minute] = trigger.value.split(':').map(Number);
+      return now.getHours() === hour && now.getMinutes() === minute;
+    }
+
+    if (trigger.type === 'device_state') {
+      const device = deviceData.devices.find(d => d.id === trigger.deviceId);
+      if (!device) return false;
+
+      switch (trigger.condition) {
+        case 'temperature_above':
+          return device.state.temperature > trigger.value;
+        case 'temperature_below':
+          return device.state.temperature < trigger.value;
+        case 'on':
+          return device.state.on === true;
+        case 'off':
+          return device.state.on === false;
+        default:
+          return false;
+      }
+    }
+
+    return false;
+  } catch (err) {
+    console.error('Error checking automation condition:', err);
+    return false;
+  }
+};
+
+const loadAutomations = async () => {
+  try {
+    automationJobs.forEach(job => job.stop());
+    automationJobs.clear();
+
+    const data = await fs.readJson(AUTOMATION_FILE);
+    
+    data.automations.forEach(automation => {
+      if (automation.enabled) {
+        let cronExpr;
+        if (automation.trigger.type === 'time') {
+          cronExpr = timeToCron(automation.trigger.value);
+        } else {
+          cronExpr = '*/30 * * * * *';
+        }
+        
+        try {
+          const job = cron.schedule(cronExpr, async () => {
+            const conditionMet = await checkAutomationCondition(automation);
+            if (conditionMet) {
+              await executeAutomation(automation);
+            }
+          });
+          automationJobs.set(automation.id, job);
+          console.log(`Loaded automation: ${automation.name} (${cronExpr})`);
+        } catch (err) {
+          console.error('Failed to schedule automation:', automation.id, err);
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Error loading automations:', err);
+  }
+};
+
+const checkConflict = async (type, id) => {
+  const systemState = await fs.readJson(SYSTEM_STATE_FILE);
+  const sceneData = await fs.readJson(SCENE_FILE);
+  const automationData = await fs.readJson(AUTOMATION_FILE);
+  const deviceData = await fs.readJson(DATA_FILE);
+
+  const conflicts = [];
+
+  if (type === 'scene') {
+    const scene = sceneData.scenes.find(s => s.id === id);
+    if (!scene) return { hasConflict: false, conflicts: [] };
+
+    const sceneDeviceIds = scene.deviceStates.map(ds => ds.deviceId);
+    
+    for (const automation of automationData.automations) {
+      if (!automation.enabled) continue;
+      
+      const automationDeviceIds = automation.actions.map(a => a.deviceId);
+      const overlappingDeviceIds = sceneDeviceIds.filter(did => automationDeviceIds.includes(did));
+      
+      if (overlappingDeviceIds.length > 0) {
+        const devices = overlappingDeviceIds.map(did => {
+          const device = deviceData.devices.find(d => d.id === did);
+          return device ? device.name : did;
+        });
+        
+        conflicts.push({
+          type: 'scene_vs_automation',
+          sceneId: scene.id,
+          sceneName: scene.name,
+          automationId: automation.id,
+          automationName: automation.name,
+          overlappingDevices: devices
+        });
+      }
+    }
+  }
+
+  if (type === 'automation') {
+    const automation = automationData.automations.find(a => a.id === id);
+    if (!automation) return { hasConflict: false, conflicts: [] };
+
+    if (systemState.activeSceneId) {
+      const activeScene = sceneData.scenes.find(s => s.id === systemState.activeSceneId);
+      const automationDeviceIds = automation.actions.map(a => a.deviceId);
+      const sceneDeviceIds = activeScene ? activeScene.deviceStates.map(ds => ds.deviceId) : [];
+      const overlappingDeviceIds = automationDeviceIds.filter(did => sceneDeviceIds.includes(did));
+      
+      if (overlappingDeviceIds.length > 0) {
+        const devices = overlappingDeviceIds.map(did => {
+          const device = deviceData.devices.find(d => d.id === did);
+          return device ? device.name : did;
+        });
+        
+        conflicts.push({
+          type: 'automation_vs_active_scene',
+          automationId: automation.id,
+          automationName: automation.name,
+          activeSceneId: systemState.activeSceneId,
+          activeSceneName: activeScene?.name,
+          overlappingDevices: devices
+        });
+      }
+    }
+  }
+
+  return {
+    hasConflict: conflicts.length > 0,
+    conflicts,
+    activeSceneId: systemState.activeSceneId
+  };
 };
 
 app.get('/api/devices', async (req, res) => {
@@ -498,8 +770,362 @@ app.delete('/api/rooms/:id', async (req, res) => {
   }
 });
 
+app.get('/api/scenes', async (req, res) => {
+  try {
+    const data = await fs.readJson(SCENE_FILE);
+    const systemState = await fs.readJson(SYSTEM_STATE_FILE);
+    res.json({ ...data, activeSceneId: systemState.activeSceneId });
+  } catch (err) {
+    console.error('Error reading scenes:', err);
+    res.status(500).json({ error: 'Failed to read scenes' });
+  }
+});
+
+app.post('/api/scenes', async (req, res) => {
+  try {
+    const { scene } = req.body;
+    if (!scene || !scene.name || !Array.isArray(scene.deviceStates)) {
+      return res.status(400).json({ error: 'Invalid scene data' });
+    }
+
+    const data = await fs.readJson(SCENE_FILE);
+    const newScene = {
+      id: `scene-${Date.now()}`,
+      name: scene.name,
+      icon: scene.icon || '🏠',
+      color: scene.color || '#6366f1',
+      description: scene.description || '',
+      deviceStates: scene.deviceStates,
+      isPreset: scene.isPreset || false,
+      createdAt: new Date().toISOString()
+    };
+
+    data.scenes.push(newScene);
+    await fs.writeJson(SCENE_FILE, data, { spaces: 2 });
+    res.json({ success: true, scene: newScene });
+  } catch (err) {
+    console.error('Error creating scene:', err);
+    res.status(500).json({ error: 'Failed to create scene' });
+  }
+});
+
+app.put('/api/scenes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const data = await fs.readJson(SCENE_FILE);
+    const sceneIndex = data.scenes.findIndex(s => s.id === id);
+    
+    if (sceneIndex === -1) {
+      return res.status(404).json({ error: 'Scene not found' });
+    }
+    
+    data.scenes[sceneIndex] = { ...data.scenes[sceneIndex], ...updateData };
+    await fs.writeJson(SCENE_FILE, data, { spaces: 2 });
+    res.json({ success: true, scene: data.scenes[sceneIndex] });
+  } catch (err) {
+    console.error('Error updating scene:', err);
+    res.status(500).json({ error: 'Failed to update scene' });
+  }
+});
+
+app.delete('/api/scenes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await fs.readJson(SCENE_FILE);
+    const initialLength = data.scenes.length;
+    data.scenes = data.scenes.filter(s => s.id !== id && !s.isPreset);
+    
+    if (data.scenes.length === initialLength) {
+      return res.status(404).json({ error: 'Scene not found or is preset' });
+    }
+    
+    await fs.writeJson(SCENE_FILE, data, { spaces: 2 });
+    res.json({ success: true, message: 'Scene deleted' });
+  } catch (err) {
+    console.error('Error deleting scene:', err);
+    res.status(500).json({ error: 'Failed to delete scene' });
+  }
+});
+
+app.post('/api/scenes/:id/activate', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sceneData = await fs.readJson(SCENE_FILE);
+    const scene = sceneData.scenes.find(s => s.id === id);
+    
+    if (!scene) {
+      return res.status(404).json({ error: 'Scene not found' });
+    }
+
+    const deviceData = await fs.readJson(DATA_FILE);
+    const systemState = await fs.readJson(SYSTEM_STATE_FILE);
+    
+    const lastDeviceStates = {};
+    for (const { deviceId, state } of scene.deviceStates) {
+      const deviceIndex = deviceData.devices.findIndex(d => d.id === deviceId);
+      if (deviceIndex !== -1) {
+        lastDeviceStates[deviceId] = { ...deviceData.devices[deviceIndex].state };
+        deviceData.devices[deviceIndex].state = {
+          ...deviceData.devices[deviceIndex].state,
+          ...state
+        };
+      }
+    }
+    
+    systemState.lastDeviceStates = { ...systemState.lastDeviceStates, ...lastDeviceStates };
+    systemState.activeSceneId = id;
+    systemState.activeSceneActivatedAt = new Date().toISOString();
+    
+    await fs.writeJson(DATA_FILE, deviceData, { spaces: 2 });
+    await fs.writeJson(SYSTEM_STATE_FILE, systemState, { spaces: 2 });
+    
+    console.log(`[${new Date().toLocaleString()}] Activated scene: ${scene.name}`);
+    res.json({ 
+      success: true, 
+      scene, 
+      activeSceneId: id,
+      activatedAt: systemState.activeSceneActivatedAt,
+      lastDeviceStates
+    });
+  } catch (err) {
+    console.error('Error activating scene:', err);
+    res.status(500).json({ error: 'Failed to activate scene' });
+  }
+});
+
+app.post('/api/scenes/deactivate', async (req, res) => {
+  try {
+    const systemState = await fs.readJson(SYSTEM_STATE_FILE);
+    
+    if (!systemState.activeSceneId) {
+      return res.status(400).json({ error: 'No active scene' });
+    }
+
+    const deviceData = await fs.readJson(DATA_FILE);
+    
+    for (const [deviceId, previousState] of Object.entries(systemState.lastDeviceStates)) {
+      const deviceIndex = deviceData.devices.findIndex(d => d.id === deviceId);
+      if (deviceIndex !== -1) {
+        deviceData.devices[deviceIndex].state = {
+          ...deviceData.devices[deviceIndex].state,
+          ...previousState
+        };
+      }
+    }
+    
+    const deactivatedSceneId = systemState.activeSceneId;
+    const restoredDeviceIds = Object.keys(systemState.lastDeviceStates || {});
+    systemState.activeSceneId = null;
+    systemState.activeSceneActivatedAt = null;
+    systemState.lastDeviceStates = {};
+    
+    await fs.writeJson(DATA_FILE, deviceData, { spaces: 2 });
+    await fs.writeJson(SYSTEM_STATE_FILE, systemState, { spaces: 2 });
+    
+    console.log(`[${new Date().toLocaleString()}] Deactivated scene`);
+    res.json({ 
+      success: true, 
+      deactivatedSceneId,
+      restoredDevices: restoredDeviceIds
+    });
+  } catch (err) {
+    console.error('Error deactivating scene:', err);
+    res.status(500).json({ error: 'Failed to deactivate scene' });
+  }
+});
+
+app.get('/api/scenes/:id/conflicts', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await checkConflict('scene', id);
+    res.json(result);
+  } catch (err) {
+    console.error('Error checking scene conflicts:', err);
+    res.status(500).json({ error: 'Failed to check conflicts' });
+  }
+});
+
+app.get('/api/automations', async (req, res) => {
+  try {
+    const data = await fs.readJson(AUTOMATION_FILE);
+    res.json(data);
+  } catch (err) {
+    console.error('Error reading automations:', err);
+    res.status(500).json({ error: 'Failed to read automations' });
+  }
+});
+
+app.post('/api/automations', async (req, res) => {
+  try {
+    const { automation } = req.body;
+    if (!automation || !automation.name || !automation.trigger || !Array.isArray(automation.actions)) {
+      return res.status(400).json({ error: 'Invalid automation data' });
+    }
+
+    const data = await fs.readJson(AUTOMATION_FILE);
+    const newAutomation = {
+      id: `automation-${Date.now()}`,
+      name: automation.name,
+      description: automation.description || '',
+      enabled: automation.enabled !== undefined ? automation.enabled : true,
+      isPreset: automation.isPreset || false,
+      trigger: automation.trigger,
+      actions: automation.actions,
+      createdAt: new Date().toISOString()
+    };
+
+    data.automations.push(newAutomation);
+    await fs.writeJson(AUTOMATION_FILE, data, { spaces: 2 });
+    
+    if (newAutomation.enabled) {
+      loadAutomations();
+    }
+    
+    res.json({ success: true, automation: newAutomation });
+  } catch (err) {
+    console.error('Error creating automation:', err);
+    res.status(500).json({ error: 'Failed to create automation' });
+  }
+});
+
+app.put('/api/automations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const data = await fs.readJson(AUTOMATION_FILE);
+    const automationIndex = data.automations.findIndex(a => a.id === id);
+    
+    if (automationIndex === -1) {
+      return res.status(404).json({ error: 'Automation not found' });
+    }
+    
+    data.automations[automationIndex] = { ...data.automations[automationIndex], ...updateData };
+    await fs.writeJson(AUTOMATION_FILE, data, { spaces: 2 });
+    
+    loadAutomations();
+    
+    res.json({ success: true, automation: data.automations[automationIndex] });
+  } catch (err) {
+    console.error('Error updating automation:', err);
+    res.status(500).json({ error: 'Failed to update automation' });
+  }
+});
+
+app.delete('/api/automations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await fs.readJson(AUTOMATION_FILE);
+    const initialLength = data.automations.length;
+    data.automations = data.automations.filter(a => a.id !== id && !a.isPreset);
+    
+    if (data.automations.length === initialLength) {
+      return res.status(404).json({ error: 'Automation not found or is preset' });
+    }
+    
+    const existingJob = automationJobs.get(id);
+    if (existingJob) {
+      existingJob.stop();
+      automationJobs.delete(id);
+    }
+    
+    await fs.writeJson(AUTOMATION_FILE, data, { spaces: 2 });
+    res.json({ success: true, message: 'Automation deleted' });
+  } catch (err) {
+    console.error('Error deleting automation:', err);
+    res.status(500).json({ error: 'Failed to delete automation' });
+  }
+});
+
+app.put('/api/automations/:id/toggle', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { enabled } = req.body;
+    const data = await fs.readJson(AUTOMATION_FILE);
+    const automationIndex = data.automations.findIndex(a => a.id === id);
+    
+    if (automationIndex === -1) {
+      return res.status(404).json({ error: 'Automation not found' });
+    }
+    
+    if (enabled === true) {
+      const conflictResult = await checkConflict('automation', id);
+      if (conflictResult.hasConflict) {
+        return res.status(409).json({ 
+          error: 'Conflict detected',
+          conflict: conflictResult
+        });
+      }
+    }
+    
+    data.automations[automationIndex].enabled = enabled;
+    await fs.writeJson(AUTOMATION_FILE, data, { spaces: 2 });
+    
+    loadAutomations();
+    
+    res.json({ 
+      success: true, 
+      automation: data.automations[automationIndex],
+      conflictCheck: enabled ? await checkConflict('automation', id) : null
+    });
+  } catch (err) {
+    console.error('Error toggling automation:', err);
+    res.status(500).json({ error: 'Failed to toggle automation' });
+  }
+});
+
+app.get('/api/automations/:id/conflicts', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await checkConflict('automation', id);
+    res.json(result);
+  } catch (err) {
+    console.error('Error checking automation conflicts:', err);
+    res.status(500).json({ error: 'Failed to check conflicts' });
+  }
+});
+
+app.get('/api/system-state', async (req, res) => {
+  try {
+    const systemState = await fs.readJson(SYSTEM_STATE_FILE);
+    const sceneData = await fs.readJson(SCENE_FILE);
+    
+    let activeScene = null;
+    if (systemState.activeSceneId) {
+      activeScene = sceneData.scenes.find(s => s.id === systemState.activeSceneId) || null;
+    }
+    
+    res.json({
+      ...systemState,
+      activeScene
+    });
+  } catch (err) {
+    console.error('Error reading system state:', err);
+    res.status(500).json({ error: 'Failed to read system state' });
+  }
+});
+
+app.get('/api/conflicts/check', async (req, res) => {
+  try {
+    const { type, id } = req.query;
+    if (!type || !id) {
+      return res.status(400).json({ error: 'Missing type or id parameter' });
+    }
+    const result = await checkConflict(type, id);
+    res.json(result);
+  } catch (err) {
+    console.error('Error checking conflicts:', err);
+    res.status(500).json({ error: 'Failed to check conflicts' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', port: PORT, activeSchedules: activeJobs.size });
+  res.json({ 
+    status: 'ok', 
+    port: PORT, 
+    activeSchedules: activeJobs.size,
+    activeAutomations: automationJobs.size
+  });
 });
 
 const start = async () => {
@@ -507,7 +1133,11 @@ const start = async () => {
   await ensureScheduleFile();
   await ensureGroupFile();
   await ensureRoomFile();
+  await ensureSceneFile();
+  await ensureAutomationFile();
+  await ensureSystemStateFile();
   await loadSchedules();
+  await loadAutomations();
   app.listen(PORT, () => {
     console.log(`Smart Home Backend running on http://localhost:${PORT}`);
   });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getDevices, saveDevices, updateDeviceState, getSchedules, createSchedule, updateSchedule, deleteSchedule, getGroups, createGroup, updateGroup, deleteGroup, updateGroupState, getRooms, saveRooms, createRoom, updateRoom, deleteRoom, getScenes, createScene, updateScene, deleteScene, activateScene, getAutomations, createAutomation, updateAutomation, deleteAutomation, toggleAutomation } from './services/api';
+import { getDevices, saveDevices, updateDeviceState, getSchedules, createSchedule, updateSchedule, deleteSchedule, getGroups, createGroup, updateGroup, deleteGroup, updateGroupState, getRooms, saveRooms, createRoom, updateRoom, deleteRoom, getScenes, createScene, updateScene, deleteScene, activateScene, deactivateScene, checkConflicts, getSystemState, getAutomations, createAutomation, updateAutomation, deleteAutomation, toggleAutomation } from './services/api';
 import Scene3D from './components/Scene3D';
 import ControlPanel from './components/ControlPanel';
 import DeviceLibrary from './components/DeviceLibrary';
@@ -394,19 +394,22 @@ function App() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [devicesData, schedulesData, groupsData, roomsData, scenesData, automationsData] = await Promise.all([
+      const [devicesData, schedulesData, groupsData, roomsData, scenesData, automationsData, systemStateData] = await Promise.all([
         getDevices(),
         getSchedules().catch(() => ({ schedules: [] })),
         getGroups().catch(() => ({ groups: [] })),
         getRooms().catch(() => ({ rooms: [] })),
         getScenes().catch(() => ({ scenes: [] })),
-        getAutomations().catch(() => ({ automations: [] }))
+        getAutomations().catch(() => ({ automations: [] })),
+        getSystemState().catch(() => ({ activeSceneId: null, activeScene: null }))
       ]);
       const loadedDevices = devicesData.devices || [];
       const loadedRooms = roomsData.rooms || [];
       const loadedGroups = groupsData.groups || [];
       const loadedScenes = scenesData.scenes || [];
       const loadedAutomations = automationsData.automations || [];
+      const systemActiveSceneId = systemStateData.activeSceneId || scenesData.activeSceneId || null;
+      const systemActiveScene = systemStateData.activeScene || null;
       
       const finalRooms = loadedRooms.length > 0 ? loadedRooms : defaultRooms;
       const finalDevices = loadedDevices.length > 0 ? loadedDevices : defaultDevices.map(d => ({
@@ -421,6 +424,10 @@ function App() {
       setGroups(loadedGroups.length > 0 ? loadedGroups : defaultGroups);
       setScenes(loadedScenes.length > 0 ? loadedScenes : defaultScenes);
       setAutomations(loadedAutomations.length > 0 ? loadedAutomations : defaultAutomations);
+      setActiveSceneId(systemActiveSceneId);
+      if (systemActiveScene && systemActiveSceneId) {
+        showMessage(`当前场景: ${systemActiveScene.name}`, 'info');
+      }
     } catch (err) {
       console.error('Failed to load data:', err);
       showMessage('加载数据失败，使用本地数据', 'warning');
@@ -843,7 +850,21 @@ function App() {
     if (!scene) return;
 
     try {
-      await activateScene(sceneId);
+      const conflictResult = await checkConflicts('scene', sceneId).catch(() => ({ hasConflict: false, conflicts: [] }));
+      
+      if (conflictResult.hasConflict) {
+        const conflictMessages = conflictResult.conflicts.map(c => 
+          `与规则"${c.automationName}"冲突设备: ${c.overlappingDevices.join('、')}`
+        ).join('\n');
+        
+        const confirmed = window.confirm(
+          `检测到潜在冲突:\n\n${conflictMessages}\n\n启用场景后，相关自动化规则将暂停执行。\n是否继续激活场景"${scene.name}"?`
+        );
+        
+        if (!confirmed) return;
+      }
+
+      const result = await activateScene(sceneId);
       scene.deviceStates.forEach(({ deviceId, state }) => {
         setDevices(prev => prev.map(d =>
           d.id === deviceId ? { ...d, state: { ...d.state, ...state } } : d
@@ -854,8 +875,12 @@ function App() {
         updateDeviceState(deviceId, state).catch(err => console.error('Update device state failed:', err));
       });
       setActiveSceneId(sceneId);
-      showMessage(`已激活场景: ${scene.name}`, 'success');
-      setTimeout(() => setActiveSceneId(null), 3000);
+      
+      if (conflictResult.hasConflict) {
+        showMessage(`已激活场景: ${scene.name}。相关自动化规则已暂停`, 'warning');
+      } else {
+        showMessage(`已激活场景: ${scene.name}`, 'success');
+      }
     } catch (err) {
       console.error('Failed to activate scene:', err);
       scene.deviceStates.forEach(({ deviceId, state }) => {
@@ -868,9 +893,30 @@ function App() {
       });
       setActiveSceneId(sceneId);
       showMessage(`已激活场景: ${scene.name}`, 'success');
-      setTimeout(() => setActiveSceneId(null), 3000);
     }
   }, [scenes, showMessage]);
+
+  const handleDeactivateScene = useCallback(async () => {
+    if (!activeSceneId) return;
+    
+    const activeScene = scenes.find(s => s.id === activeSceneId);
+    
+    try {
+      const result = await deactivateScene();
+      if (result.restoredDevices && result.restoredDevices.length > 0) {
+        result.restoredDevices.forEach(deviceId => {
+          updateDeviceState(deviceId, {}).catch(err => console.error('Restore device state failed:', err));
+        });
+        loadData();
+      }
+      setActiveSceneId(null);
+      showMessage(`已退出场景: ${activeScene?.name || '当前场景'}，设备状态已恢复`, 'success');
+    } catch (err) {
+      console.error('Failed to deactivate scene:', err);
+      setActiveSceneId(null);
+      showMessage('已退出场景', 'info');
+    }
+  }, [activeSceneId, scenes, showMessage, loadData]);
 
   const handleCreateScene = useCallback(async (sceneData) => {
     try {
@@ -980,21 +1026,60 @@ function App() {
 
   const handleToggleAutomation = useCallback(async (id, enabled) => {
     try {
+      if (enabled) {
+        const conflictResult = await checkConflicts('automation', id).catch(() => ({ hasConflict: false, conflicts: [] }));
+        
+        if (conflictResult.hasConflict) {
+          const conflict = conflictResult.conflicts[0];
+          const confirmed = window.confirm(
+            `检测到冲突:\n\n当前场景"${conflict.activeSceneName}"正在运行\n冲突设备: ${conflict.overlappingDevices.join('、')}\n\n启用此规则将退出当前场景。\n是否继续?`
+          );
+          
+          if (!confirmed) return;
+          
+          await handleDeactivateScene();
+        }
+      }
+      
       await toggleAutomation(id, enabled);
       setAutomations(prev => prev.map(a =>
         a.id === id ? { ...a, enabled } : a
       ));
       showMessage(`自动化规则已${enabled ? '启用' : '禁用'}`, 'info');
     } catch (err) {
+      if (err.response && err.response.status === 409) {
+        const conflictData = err.response.data.conflict;
+        if (conflictData && conflictData.hasConflict) {
+          const conflict = conflictData.conflicts[0];
+          const confirmed = window.confirm(
+            `检测到冲突:\n\n当前场景"${conflict.activeSceneName}"正在运行\n冲突设备: ${conflict.overlappingDevices.join('、')}\n\n启用此规则将退出当前场景。\n是否继续?`
+          );
+          
+          if (confirmed) {
+            await handleDeactivateScene();
+            await toggleAutomation(id, enabled);
+            setAutomations(prev => prev.map(a =>
+              a.id === id ? { ...a, enabled } : a
+            ));
+            showMessage(`自动化规则已${enabled ? '启用' : '禁用'}`, 'info');
+          }
+        }
+        return;
+      }
+      
       console.error('Failed to toggle automation:', err);
       setAutomations(prev => prev.map(a =>
         a.id === id ? { ...a, enabled } : a
       ));
       showMessage(`自动化规则已${enabled ? '启用' : '禁用'}`, 'info');
     }
-  }, [showMessage]);
+  }, [showMessage, handleDeactivateScene]);
 
   const checkAutomationConditions = useCallback(() => {
+    if (activeSceneId) {
+      return;
+    }
+    
     const now = Date.now();
     const minInterval = 60000;
 
@@ -1048,7 +1133,7 @@ function App() {
         showMessage(`自动化触发: ${automation.name}`, 'info');
       }
     });
-  }, [automations, devices, showMessage]);
+  }, [automations, devices, showMessage, activeSceneId]);
 
   useEffect(() => {
     const interval = setInterval(checkAutomationConditions, 10000);
@@ -1076,10 +1161,26 @@ function App() {
     }
   };
 
+  const activeScene = scenes.find(s => s.id === activeSceneId);
+
   return (
     <div className="app-container">
       <div className="header">
         <h1>🏠 3D智能家居控制系统</h1>
+        {activeScene && (
+          <div className="active-scene-indicator" style={{ borderLeftColor: activeScene.color }}>
+            <span className="active-scene-icon" style={{ backgroundColor: activeScene.color + '20', color: activeScene.color }}>
+              {activeScene.icon}
+            </span>
+            <div className="active-scene-info">
+              <span className="active-scene-label">当前场景</span>
+              <span className="active-scene-name">{activeScene.name}</span>
+            </div>
+            <button className="btn btn-small btn-danger" onClick={handleDeactivateScene} title="退出场景，恢复设备状态">
+              ✕ 退出场景
+            </button>
+          </div>
+        )}
         <div className="header-actions">
           <span className={`save-status ${isSaving ? 'saving' : 'saved'}`}>
             {isSaving ? '💾 保存中...' : '✓ 自动保存已开启'}
@@ -1129,6 +1230,7 @@ function App() {
           <SceneQuickPanel
             scenes={scenes}
             onActivateScene={handleActivateScene}
+            onDeactivateScene={handleDeactivateScene}
             activeSceneId={activeSceneId}
             onManageScenes={() => setShowSceneManager(true)}
           />
@@ -1216,6 +1318,7 @@ function App() {
               onUpdateScene={handleUpdateScene}
               onDeleteScene={handleDeleteScene}
               onActivateScene={handleActivateScene}
+              onDeactivateScene={handleDeactivateScene}
               onClose={() => setShowSceneManager(false)}
               activeSceneId={activeSceneId}
             />
@@ -1229,6 +1332,8 @@ function App() {
             <AutomationManager
               automations={automations}
               devices={devices}
+              activeSceneId={activeSceneId}
+              scenes={scenes}
               onCreateAutomation={handleCreateAutomation}
               onUpdateAutomation={handleUpdateAutomation}
               onDeleteAutomation={handleDeleteAutomation}

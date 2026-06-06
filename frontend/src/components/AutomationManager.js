@@ -418,7 +418,7 @@ function AutomationForm({ automation, devices, onSubmit, onCancel, isEdit }) {
   );
 }
 
-function AutomationList({ automations, devices, onEdit, onDelete, onToggle }) {
+function AutomationList({ automations, devices, onEdit, onDelete, onToggle, activeSceneId, scenes }) {
   if (automations.length === 0) {
     return (
       <div className="empty-schedules">
@@ -427,6 +427,30 @@ function AutomationList({ automations, devices, onEdit, onDelete, onToggle }) {
       </div>
     );
   }
+
+  const activeScene = scenes.find(s => s.id === activeSceneId);
+
+  const hasConflict = (automation) => {
+    if (!activeSceneId || !automation.enabled) return false;
+    const automationDeviceIds = automation.actions.map(a => a.deviceId);
+    const scene = scenes.find(s => s.id === activeSceneId);
+    if (!scene) return false;
+    const sceneDeviceIds = scene.deviceStates.map(ds => ds.deviceId);
+    return automationDeviceIds.some(id => sceneDeviceIds.includes(id));
+  };
+
+  const getConflictDevices = (automation) => {
+    if (!activeSceneId) return [];
+    const automationDeviceIds = automation.actions.map(a => a.deviceId);
+    const scene = scenes.find(s => s.id === activeSceneId);
+    if (!scene) return [];
+    const sceneDeviceIds = scene.deviceStates.map(ds => ds.deviceId);
+    const overlappingIds = automationDeviceIds.filter(id => sceneDeviceIds.includes(id));
+    return overlappingIds.map(id => {
+      const device = devices.find(d => d.id === id);
+      return device ? device.name : id;
+    });
+  };
 
   const getTriggerDescription = (trigger) => {
     if (trigger.type === 'time') {
@@ -453,74 +477,92 @@ function AutomationList({ automations, devices, onEdit, onDelete, onToggle }) {
 
   return (
     <div className="automation-list">
-      {automations.map((automation) => (
-        <div
-          key={automation.id}
-          className={`automation-card ${automation.enabled ? '' : 'disabled'}`}
-        >
-          <div className="automation-card-header">
-            <div className="automation-card-title">
-              <div>
-                <h4>
-                  {automation.name} {automation.isPreset && <span className="preset-badge">预置</span>}
-                </h4>
-                <p className="automation-meta">{automation.description}</p>
-              </div>
-            </div>
-            <div className="automation-card-actions">
-              <div
-                className={`switch small ${automation.enabled ? 'active' : ''}`}
-                onClick={() => onToggle(automation.id, !automation.enabled)}
-                title={automation.enabled ? '禁用' : '启用'}
-              >
-                <div className="switch-knob"></div>
-              </div>
-              <button className="btn-icon" onClick={() => onEdit(automation)} title="编辑">
-                ✏️
-              </button>
-              {!automation.isPreset && (
-                <button className="btn-icon delete" onClick={() => onDelete(automation.id)} title="删除">
-                  🗑️
-                </button>
-              )}
-            </div>
-          </div>
-          
-          <div className="automation-trigger">
-            <span className="automation-label">IF</span>
-            <span className="automation-condition">{getTriggerDescription(automation.trigger)}</span>
-          </div>
-          
-          <div className="automation-actions-preview">
-            <span className="automation-label">THEN</span>
-            <div className="automation-actions-tags">
-              {automation.actions.slice(0, 4).map(({ deviceId, state }) => {
-                const device = devices.find(d => d.id === deviceId);
-                if (!device) return null;
-                return (
-                  <span
-                    key={deviceId}
-                    className={`automation-action-tag ${state.on ? 'on' : 'off'}`}
-                    title={`${device.name}: ${state.on ? '开启' : '关闭'}`}
-                  >
-                    {typeIcons[device.type] || '📱'} {device.name}
-                  </span>
-                );
-              })}
-              {automation.actions.length > 4 && (
-                <span className="automation-action-tag more">
-                  +{automation.actions.length - 4}
-                </span>
-              )}
-            </div>
+      {activeScene && (
+        <div className="conflict-notice">
+          <span className="conflict-icon">⚠️</span>
+          <div>
+            <strong>场景"{activeScene.name}"正在运行</strong>
+            <p>启用与场景冲突的规则将自动退出当前场景</p>
           </div>
         </div>
-      ))}
+      )}
+      {automations.map((automation) => {
+        const conflict = hasConflict(automation);
+        const conflictDevices = getConflictDevices(automation);
+        return (
+          <div
+            key={automation.id}
+            className={`automation-card ${automation.enabled ? '' : 'disabled'} ${conflict ? 'has-conflict' : ''}`}
+          >
+            <div className="automation-card-header">
+              <div className="automation-card-title">
+                <div>
+                  <h4>
+                    {automation.name} {automation.isPreset && <span className="preset-badge">预置</span>}
+                  </h4>
+                  <p className="automation-meta">{automation.description}</p>
+                  {conflict && (
+                    <p className="conflict-warning">
+                      ⚠️ 与场景"{activeScene?.name}"冲突设备: {conflictDevices.join('、')}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="automation-card-actions">
+                <div
+                  className={`switch small ${automation.enabled ? 'active' : ''}`}
+                  onClick={() => onToggle(automation.id, !automation.enabled)}
+                  title={automation.enabled ? '禁用' : '启用'}
+                >
+                  <div className="switch-knob"></div>
+                </div>
+                <button className="btn-icon" onClick={() => onEdit(automation)} title="编辑">
+                  ✏️
+                </button>
+                {!automation.isPreset && (
+                  <button className="btn-icon delete" onClick={() => onDelete(automation.id)} title="删除">
+                    🗑️
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="automation-trigger">
+              <span className="automation-label">IF</span>
+              <span className="automation-condition">{getTriggerDescription(automation.trigger)}</span>
+            </div>
+            
+            <div className="automation-actions-preview">
+              <span className="automation-label">THEN</span>
+              <div className="automation-actions-tags">
+                {automation.actions.slice(0, 4).map(({ deviceId, state }) => {
+                  const device = devices.find(d => d.id === deviceId);
+                  if (!device) return null;
+                  return (
+                    <span
+                      key={deviceId}
+                      className={`automation-action-tag ${state.on ? 'on' : 'off'}`}
+                      title={`${device.name}: ${state.on ? '开启' : '关闭'}`}
+                    >
+                      {typeIcons[device.type] || '📱'} {device.name}
+                    </span>
+                  );
+                })}
+                {automation.actions.length > 4 && (
+                  <span className="automation-action-tag more">
+                    +{automation.actions.length - 4}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function AutomationManager({ automations, devices, onCreateAutomation, onUpdateAutomation, onDeleteAutomation, onToggleAutomation, onClose }) {
+function AutomationManager({ automations, devices, activeSceneId, scenes, onCreateAutomation, onUpdateAutomation, onDeleteAutomation, onToggleAutomation, onClose }) {
   const [mode, setMode] = useState('list');
   const [editingAutomation, setEditingAutomation] = useState(null);
 
@@ -558,8 +600,10 @@ function AutomationManager({ automations, devices, onCreateAutomation, onUpdateA
             <AutomationList
               automations={automations}
               devices={devices}
+              activeSceneId={activeSceneId}
+              scenes={scenes}
               onEdit={handleEdit}
-              onDelete={onDeleteAutomation}
+              onDelete={handleDeleteAutomation}
               onToggle={onToggleAutomation}
             />
             <button

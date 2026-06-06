@@ -339,7 +339,7 @@ function SceneForm({ scene, devices, onSubmit, onCancel, isEdit }) {
   );
 }
 
-function SceneList({ scenes, devices, onEdit, onDelete, onActivate, activeSceneId }) {
+function SceneList({ scenes, devices, onEdit, onDelete, onActivate, onDeactivate, activeSceneId }) {
   if (scenes.length === 0) {
     return (
       <div className="empty-schedules">
@@ -353,67 +353,96 @@ function SceneList({ scenes, devices, onEdit, onDelete, onActivate, activeSceneI
     return devices.filter(d => scene.deviceStates.some(ds => ds.deviceId === d.id)).length;
   };
 
+  const activeScene = scenes.find(s => s.id === activeSceneId);
+
   return (
     <div className="scene-list">
-      {scenes.map((scene) => (
-        <div
-          key={scene.id}
-          className={`scene-card ${activeSceneId === scene.id ? 'active' : ''}`}
-          style={{ borderLeftColor: scene.color }}
-        >
-          <div className="scene-card-header">
-            <div className="scene-card-title">
-              <span className="scene-icon" style={{ backgroundColor: scene.color + '20', color: scene.color }}>
-                {scene.icon}
-              </span>
-              <div>
-                <h4>{scene.name} {scene.isPreset && <span className="preset-badge">预置</span>}</h4>
-                <p className="scene-meta">
-                  {getSceneDeviceCount(scene)} 个设备 · {scene.description}
-                </p>
+      {activeScene && (
+        <div className="active-scene-notice" style={{ borderLeftColor: activeScene.color }}>
+          <span className="active-scene-notice-icon" style={{ backgroundColor: activeScene.color + '20', color: activeScene.color }}>
+            {activeScene.icon}
+          </span>
+          <div className="active-scene-notice-info">
+            <strong>当前场景: {activeScene.name}</strong>
+            <p>激活后所有相关自动化规则将暂停执行</p>
+          </div>
+          <button className="btn btn-small btn-danger" onClick={onDeactivate}>
+            ✕ 退出场景
+          </button>
+        </div>
+      )}
+      {scenes.map((scene) => {
+        const isActive = activeSceneId === scene.id;
+        return (
+          <div
+            key={scene.id}
+            className={`scene-card ${isActive ? 'active' : ''}`}
+            style={{ borderLeftColor: scene.color }}
+          >
+            <div className="scene-card-header">
+              <div className="scene-card-title">
+                <span className="scene-icon" style={{ backgroundColor: scene.color + '20', color: scene.color }}>
+                  {scene.icon}
+                </span>
+                <div>
+                  <h4>
+                    {scene.name} 
+                    {scene.isPreset && <span className="preset-badge">预置</span>}
+                    {isActive && <span className="active-badge" style={{ backgroundColor: scene.color }}>运行中</span>}
+                  </h4>
+                  <p className="scene-meta">
+                    {getSceneDeviceCount(scene)} 个设备 · {scene.description}
+                  </p>
+                </div>
+              </div>
+              <div className="scene-card-actions">
+                {isActive ? (
+                  <button className="btn-icon" onClick={onDeactivate} title="退出场景">
+                    ⏹️
+                  </button>
+                ) : (
+                  <button className="btn-icon" onClick={() => onActivate(scene.id)} title="激活">
+                    ▶️
+                  </button>
+                )}
+                <button className="btn-icon" onClick={() => onEdit(scene)} title="编辑">
+                  ✏️
+                </button>
+                {!scene.isPreset && (
+                  <button className="btn-icon delete" onClick={() => onDelete(scene.id)} title="删除">
+                    🗑️
+                  </button>
+                )}
               </div>
             </div>
-            <div className="scene-card-actions">
-              <button className="btn-icon" onClick={() => onActivate(scene.id)} title="激活">
-                ▶️
-              </button>
-              <button className="btn-icon" onClick={() => onEdit(scene)} title="编辑">
-                ✏️
-              </button>
-              {!scene.isPreset && (
-                <button className="btn-icon delete" onClick={() => onDelete(scene.id)} title="删除">
-                  🗑️
-                </button>
+            <div className="scene-device-preview">
+              {scene.deviceStates.slice(0, 6).map(({ deviceId, state }) => {
+                const device = devices.find(d => d.id === deviceId);
+                if (!device) return null;
+                return (
+                  <span
+                    key={deviceId}
+                    className={`scene-device-tag ${state.on ? 'on' : 'off'}`}
+                    title={`${device.name}: ${state.on ? '开启' : '关闭'}`}
+                  >
+                    {typeIcons[device.type] || '📱'} {device.name}
+                  </span>
+                );
+              })}
+              {scene.deviceStates.length > 6 && (
+                <span className="scene-device-tag more">
+                  +{scene.deviceStates.length - 6}
+                </span>
               )}
             </div>
           </div>
-          <div className="scene-device-preview">
-            {scene.deviceStates.slice(0, 6).map(({ deviceId, state }) => {
-              const device = devices.find(d => d.id === deviceId);
-              if (!device) return null;
-              return (
-                <span
-                  key={deviceId}
-                  className={`scene-device-tag ${state.on ? 'on' : 'off'}`}
-                  title={`${device.name}: ${state.on ? '开启' : '关闭'}`}
-                >
-                  {typeIcons[device.type] || '📱'} {device.name}
-                </span>
-              );
-            })}
-            {scene.deviceStates.length > 6 && (
-              <span className="scene-device-tag more">
-                +{scene.deviceStates.length - 6}
-              </span>
-            )}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-function SceneManager({ scenes, devices, onCreateScene, onUpdateScene, onDeleteScene, onActivateScene, onClose, activeSceneId }) {
+function SceneManager({ scenes, devices, onCreateScene, onUpdateScene, onDeleteScene, onActivateScene, onDeactivateScene, onClose, activeSceneId }) {
   const [mode, setMode] = useState('list');
   const [editingScene, setEditingScene] = useState(null);
 
@@ -454,6 +483,7 @@ function SceneManager({ scenes, devices, onCreateScene, onUpdateScene, onDeleteS
               onEdit={handleEdit}
               onDelete={onDeleteScene}
               onActivate={onActivateScene}
+              onDeactivate={onDeactivateScene}
               activeSceneId={activeSceneId}
             />
             <button
