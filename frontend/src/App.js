@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { getDevices, saveDevices, updateDeviceState } from './services/api';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { getDevices, saveDevices, updateDeviceState, getSchedules, createSchedule, updateSchedule, deleteSchedule } from './services/api';
 import Scene3D from './components/Scene3D';
 import ControlPanel from './components/ControlPanel';
 import DeviceLibrary from './components/DeviceLibrary';
@@ -45,20 +45,49 @@ function App() {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
+  const [schedules, setSchedules] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const autoSaveTimerRef = useRef(null);
+  const lastSavedRef = useRef(null);
 
   const showMessage = useCallback((text, type = 'info') => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 3000);
   }, []);
 
-  const loadDevices = useCallback(async () => {
+  const performSave = useCallback(async (devicesToSave) => {
+    try {
+      setIsSaving(true);
+      await saveDevices(devicesToSave);
+      lastSavedRef.current = Date.now();
+    } catch (err) {
+      console.error('Auto save failed:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  const autoSave = useCallback((devicesToSave) => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    autoSaveTimerRef.current = setTimeout(() => {
+      performSave(devicesToSave);
+    }, 500);
+  }, [performSave]);
+
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getDevices();
-      setDevices(data.devices || []);
+      const [devicesData, schedulesData] = await Promise.all([
+        getDevices(),
+        getSchedules().catch(() => ({ schedules: [] }))
+      ]);
+      setDevices(devicesData.devices || []);
+      setSchedules(schedulesData.schedules || []);
     } catch (err) {
-      console.error('Failed to load devices:', err);
-      showMessage('加载设备失败，使用本地数据', 'warning');
+      console.error('Failed to load data:', err);
+      showMessage('加载数据失败，使用本地数据', 'warning');
       setDevices(defaultDevices);
     } finally {
       setLoading(false);
@@ -66,14 +95,23 @@ function App() {
   }, [showMessage]);
 
   useEffect(() => {
-    loadDevices();
-  }, [loadDevices]);
+    loadData();
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [loadData]);
 
   const handleDeviceMove = useCallback((id, position, rotation) => {
-    setDevices(prev => prev.map(d => 
-      d.id === id ? { ...d, position, rotation } : d
-    ));
-  }, []);
+    setDevices(prev => {
+      const newDevices = prev.map(d => 
+        d.id === id ? { ...d, position, rotation } : d
+      );
+      autoSave(newDevices);
+      return newDevices;
+    });
+  }, [autoSave]);
 
   const handleDeviceSelect = useCallback((device) => {
     setSelectedDevice(device);
@@ -137,16 +175,24 @@ function App() {
       state: getDefaultState(deviceType)
     };
     
-    setDevices(prev => [...prev, newDevice]);
+    setDevices(prev => {
+      const newDevices = [...prev, newDevice];
+      autoSave(newDevices);
+      return newDevices;
+    });
     setSelectedDevice(newDevice);
     showMessage(`已添加 ${newDevice.name}`, 'success');
-  }, [showMessage]);
+  }, [autoSave, showMessage]);
 
   const handleDeleteDevice = useCallback(async (id) => {
-    setDevices(prev => prev.filter(d => d.id !== id));
+    setDevices(prev => {
+      const newDevices = prev.filter(d => d.id !== id);
+      autoSave(newDevices);
+      return newDevices;
+    });
     setSelectedDevice(prev => prev?.id === id ? null : prev);
     showMessage('设备已删除', 'info');
-  }, [showMessage]);
+  }, [autoSave, showMessage]);
 
   const handleSave = async () => {
     try {
@@ -157,6 +203,48 @@ function App() {
       showMessage('保存失败', 'error');
     }
   };
+
+  const handleAddSchedule = useCallback(async (scheduleData) => {
+    try {
+      const result = await createSchedule(scheduleData);
+      setSchedules(prev => [...prev, result.schedule]);
+      showMessage('定时任务已创建', 'success');
+      return result.schedule;
+    } catch (err) {
+      console.error('Failed to create schedule:', err);
+      showMessage('创建定时任务失败', 'error');
+      throw err;
+    }
+  }, [showMessage]);
+
+  const handleUpdateSchedule = useCallback(async (id, data) => {
+    try {
+      const result = await updateSchedule(id, data);
+      setSchedules(prev => prev.map(s => s.id === id ? result.schedule : s));
+      showMessage('定时任务已更新', 'success');
+      return result.schedule;
+    } catch (err) {
+      console.error('Failed to update schedule:', err);
+      showMessage('更新定时任务失败', 'error');
+      throw err;
+    }
+  }, [showMessage]);
+
+  const handleDeleteSchedule = useCallback(async (id) => {
+    try {
+      await deleteSchedule(id);
+      setSchedules(prev => prev.filter(s => s.id !== id));
+      showMessage('定时任务已删除', 'info');
+    } catch (err) {
+      console.error('Failed to delete schedule:', err);
+      showMessage('删除定时任务失败', 'error');
+      throw err;
+    }
+  }, [showMessage]);
+
+  const getDeviceSchedules = useCallback((deviceId) => {
+    return schedules.filter(s => s.deviceId === deviceId);
+  }, [schedules]);
 
   if (loading) {
     return (
@@ -172,10 +260,13 @@ function App() {
       <div className="header">
         <h1>🏠 3D智能家居控制系统</h1>
         <div className="header-actions">
+          <span className={`save-status ${isSaving ? 'saving' : 'saved'}`}>
+            {isSaving ? '💾 保存中...' : '✓ 自动保存已开启'}
+          </span>
           <button className="btn btn-primary" onClick={handleSave}>
-            💾 保存布局
+            💾 立即保存
           </button>
-          <button className="btn btn-secondary" onClick={loadDevices}>
+          <button className="btn btn-secondary" onClick={loadData}>
             🔄 刷新
           </button>
         </div>
@@ -198,6 +289,10 @@ function App() {
           onStateChange={handleStateChange}
           onDelete={handleDeleteDevice}
           onClose={() => setSelectedDevice(null)}
+          schedules={selectedDevice ? getDeviceSchedules(selectedDevice.id) : []}
+          onAddSchedule={handleAddSchedule}
+          onUpdateSchedule={handleUpdateSchedule}
+          onDeleteSchedule={handleDeleteSchedule}
         />
       </div>
 

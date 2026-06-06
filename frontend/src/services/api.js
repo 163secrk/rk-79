@@ -37,6 +37,26 @@ export const deleteDevice = async (id) => {
   return response.data;
 };
 
+export const getSchedules = async () => {
+  const response = await api.get('/schedules');
+  return response.data;
+};
+
+export const createSchedule = async (schedule) => {
+  const response = await api.post('/schedules', { schedule });
+  return response.data;
+};
+
+export const updateSchedule = async (id, data) => {
+  const response = await api.put(`/schedules/${id}`, data);
+  return response.data;
+};
+
+export const deleteSchedule = async (id) => {
+  const response = await api.delete(`/schedules/${id}`);
+  return response.data;
+};
+
 export const checkHealth = async () => {
   const response = await api.get('/health');
   return response.data;

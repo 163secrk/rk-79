@@ -1,0 +1,107 @@
+{
+  "schedules": [
+    {
+      "id": "schedule-1780708037334",
+      "name": "定时任务",
+      "deviceId": "tv-1780707851631",
+      "time": "07:00",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "targetState": {
+        "on": true
+      },
+      "enabled": true,
+      "createdAt": "2026-06-06T01:07:17.334Z"
+    },
+    {
+      "id": "schedule-1780708048989",
+      "name": "定时任务",
+      "deviceId": "tv-1780707851631",
+      "time": "08:00",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "targetState": {
+        "on": false
+      },
+      "enabled": true,
+      "createdAt": "2026-06-06T01:07:28.989Z"
+    },
+    {
+      "id": "schedule-1780708074663",
+      "name": "定时任务",
+      "deviceId": "ac-1780667704895",
+      "time": "07:00",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "targetState": {
+        "on": true,
+        "temperature": 19
+      },
+      "enabled": true,
+      "createdAt": "2026-06-06T01:07:54.663Z"
+    },
+    {
+      "id": "schedule-1780708078358",
+      "name": "定时任务",
+      "deviceId": "ac-1780667704895",
+      "time": "07:00",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "targetState": {
+        "on": true,
+        "temperature": 26
+      },
+      "enabled": true,
+      "createdAt": "2026-06-06T01:07:58.358Z"
+    },
+    {
+      "id": "schedule-1780708095062",
+      "name": "定时任务",
+      "deviceId": "ac-1780667704895",
+      "time": "07:00",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "targetState": {
+        "on": true,
+        "temperature": 24
+      },
+      "enabled": true,
+      "createdAt": "2026-06-06T01:08:15.062Z"
+    }
+  ]
+}
