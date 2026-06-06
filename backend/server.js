@@ -8,6 +8,7 @@ const app = express();
 const PORT = 8079;
 const DATA_FILE = path.join(__dirname, 'data', 'devices.json');
 const SCHEDULE_FILE = path.join(__dirname, 'data', 'schedules.json');
+const GROUP_FILE = path.join(__dirname, 'data', 'groups.json');
 
 const activeJobs = new Map();
 
@@ -25,6 +26,13 @@ const ensureScheduleFile = async () => {
   const exists = await fs.pathExists(SCHEDULE_FILE);
   if (!exists) {
     await fs.outputJson(SCHEDULE_FILE, { schedules: [] });
+  }
+};
+
+const ensureGroupFile = async () => {
+  const exists = await fs.pathExists(GROUP_FILE);
+  if (!exists) {
+    await fs.outputJson(GROUP_FILE, { groups: [] });
   }
 };
 
@@ -290,6 +298,114 @@ app.delete('/api/schedules/:id', async (req, res) => {
   }
 });
 
+app.get('/api/groups', async (req, res) => {
+  try {
+    const data = await fs.readJson(GROUP_FILE);
+    res.json(data);
+  } catch (err) {
+    console.error('Error reading groups:', err);
+    res.status(500).json({ error: 'Failed to read groups' });
+  }
+});
+
+app.post('/api/groups', async (req, res) => {
+  try {
+    const { group } = req.body;
+    if (!group || !group.name || !Array.isArray(group.deviceIds)) {
+      return res.status(400).json({ error: 'Invalid group data' });
+    }
+
+    const data = await fs.readJson(GROUP_FILE);
+    const newGroup = {
+      id: `group-${Date.now()}`,
+      name: group.name,
+      icon: group.icon || '📦',
+      color: group.color || '#667eea',
+      deviceIds: group.deviceIds,
+      createdAt: new Date().toISOString()
+    };
+
+    data.groups.push(newGroup);
+    await fs.writeJson(GROUP_FILE, data, { spaces: 2 });
+    res.json({ success: true, group: newGroup });
+  } catch (err) {
+    console.error('Error creating group:', err);
+    res.status(500).json({ error: 'Failed to create group' });
+  }
+});
+
+app.put('/api/groups/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const data = await fs.readJson(GROUP_FILE);
+    const groupIndex = data.groups.findIndex(g => g.id === id);
+    
+    if (groupIndex === -1) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    
+    data.groups[groupIndex] = { ...data.groups[groupIndex], ...updateData };
+    await fs.writeJson(GROUP_FILE, data, { spaces: 2 });
+    res.json({ success: true, group: data.groups[groupIndex] });
+  } catch (err) {
+    console.error('Error updating group:', err);
+    res.status(500).json({ error: 'Failed to update group' });
+  }
+});
+
+app.delete('/api/groups/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await fs.readJson(GROUP_FILE);
+    const initialLength = data.groups.length;
+    data.groups = data.groups.filter(g => g.id !== id);
+    
+    if (data.groups.length === initialLength) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    
+    await fs.writeJson(GROUP_FILE, data, { spaces: 2 });
+    res.json({ success: true, message: 'Group deleted' });
+  } catch (err) {
+    console.error('Error deleting group:', err);
+    res.status(500).json({ error: 'Failed to delete group' });
+  }
+});
+
+app.put('/api/groups/:id/state', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const stateUpdate = req.body;
+    const groupData = await fs.readJson(GROUP_FILE);
+    const group = groupData.groups.find(g => g.id === id);
+    
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    const deviceData = await fs.readJson(DATA_FILE);
+    const updatedDevices = [];
+    
+    group.deviceIds.forEach(deviceId => {
+      const deviceIndex = deviceData.devices.findIndex(d => d.id === deviceId);
+      if (deviceIndex !== -1) {
+        deviceData.devices[deviceIndex].state = {
+          ...deviceData.devices[deviceIndex].state,
+          ...stateUpdate
+        };
+        updatedDevices.push(deviceData.devices[deviceIndex]);
+      }
+    });
+    
+    await fs.writeJson(DATA_FILE, deviceData, { spaces: 2 });
+    res.json({ success: true, updatedDevices, state: stateUpdate });
+  } catch (err) {
+    console.error('Error updating group state:', err);
+    res.status(500).json({ error: 'Failed to update group state' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', port: PORT, activeSchedules: activeJobs.size });
 });
@@ -297,6 +413,7 @@ app.get('/api/health', (req, res) => {
 const start = async () => {
   await ensureDataFile();
   await ensureScheduleFile();
+  await ensureGroupFile();
   await loadSchedules();
   app.listen(PORT, () => {
     console.log(`Smart Home Backend running on http://localhost:${PORT}`);

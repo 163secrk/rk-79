@@ -18,7 +18,10 @@
       "state": {
         "on": true,
         "brightness": 42,
-        "color": "#ffffff"
+        "color": "#ffffff",
+        "temperature": 29,
+        "volume": 90,
+        "mode": "heat"
       }
     },
     {
@@ -38,8 +41,9 @@
       },
       "state": {
         "on": true,
-        "temperature": 24,
-        "mode": "cool"
+        "temperature": 29,
+        "mode": "heat",
+        "volume": 90
       }
     },
     {
@@ -58,9 +62,13 @@
         "z": 0
       },
       "state": {
-        "on": false,
-        "volume": 50,
-        "channel": 1
+        "on": true,
+        "volume": 31,
+        "channel": 1,
+        "temperature": 19,
+        "mode": "heat",
+        "brightness": 30,
+        "color": "#268249"
       }
     },
     {
@@ -80,8 +88,11 @@
       },
       "state": {
         "on": true,
-        "brightness": 42,
-        "color": "#a09554"
+        "brightness": 30,
+        "color": "#268249",
+        "temperature": 19,
+        "volume": 31,
+        "mode": "heat"
       }
     },
     {
@@ -100,9 +111,13 @@
         "z": 0
       },
       "state": {
-        "on": false,
-        "volume": 50,
-        "channel": 1
+        "on": true,
+        "volume": 31,
+        "channel": 1,
+        "temperature": 19,
+        "mode": "heat",
+        "brightness": 30,
+        "color": "#268249"
       }
     },
     {
@@ -121,9 +136,12 @@
         "z": 0
       },
       "state": {
-        "on": false,
-        "temperature": 24,
-        "mode": "cool"
+        "on": true,
+        "temperature": 19,
+        "mode": "heat",
+        "volume": 31,
+        "brightness": 30,
+        "color": "#268249"
       }
     },
     {
@@ -143,7 +161,10 @@
       },
       "state": {
         "on": true,
-        "recording": false
+        "recording": false,
+        "temperature": 29,
+        "volume": 90,
+        "mode": "heat"
       }
     },
     {
@@ -163,8 +184,12 @@
       },
       "state": {
         "on": true,
-        "volume": 50,
-        "channel": 1
+        "volume": 31,
+        "channel": 1,
+        "temperature": 19,
+        "mode": "heat",
+        "brightness": 30,
+        "color": "#268249"
       }
     },
     {
@@ -184,7 +209,10 @@
       },
       "state": {
         "on": true,
-        "recording": false
+        "recording": false,
+        "temperature": 29,
+        "volume": 90,
+        "mode": "heat"
       }
     },
     {
@@ -204,7 +232,10 @@
       },
       "state": {
         "on": true,
-        "recording": false
+        "recording": false,
+        "temperature": 29,
+        "volume": 90,
+        "mode": "heat"
       }
     },
     {
@@ -224,7 +255,10 @@
       },
       "state": {
         "on": true,
-        "recording": true
+        "recording": true,
+        "temperature": 29,
+        "volume": 90,
+        "mode": "heat"
       }
     },
     {
@@ -244,8 +278,10 @@
       },
       "state": {
         "on": true,
-        "volume": 7,
-        "channel": 397
+        "volume": 10,
+        "channel": 397,
+        "temperature": 29,
+        "mode": "heat"
       }
     },
     {
@@ -266,7 +302,10 @@
       "state": {
         "on": true,
         "brightness": 13,
-        "color": "#18cd45"
+        "color": "#18cd45",
+        "temperature": 29,
+        "volume": 90,
+        "mode": "heat"
       }
     }
   ]

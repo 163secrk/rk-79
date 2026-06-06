@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react';
 import * as THREE from 'three';
 
-const CeilingLight = ({ state, isSelected, isHovered }) => {
+const CeilingLight = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
   const isOn = state.on;
   const brightness = state.brightness || 80;
   const color = state.color || '#ffffff';
@@ -42,13 +42,13 @@ const CeilingLight = ({ state, isSelected, isHovered }) => {
         />
       )}
 
-      {(isSelected || isHovered) && (
+      {showHighlight && (
         <mesh position={[0, -0.2, 0]}>
           <ringGeometry args={[0.5, 0.55, 32]} />
           <meshBasicMaterial 
-            color={isSelected ? '#667eea' : '#764ba2'} 
+            color={highlightColor} 
             transparent 
-            opacity={0.8}
+            opacity={isInGroup && !isSelected && !isHovered ? 0.5 : 0.8}
             side={THREE.DoubleSide}
           />
         </mesh>
@@ -57,7 +57,7 @@ const CeilingLight = ({ state, isSelected, isHovered }) => {
   );
 };
 
-const Lamp = ({ state, isSelected, isHovered }) => {
+const Lamp = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
   const isOn = state.on;
   const brightness = state.brightness || 80;
   const color = state.color || '#ffd700';
@@ -105,13 +105,13 @@ const Lamp = ({ state, isSelected, isHovered }) => {
         />
       )}
 
-      {(isSelected || isHovered) && (
+      {showHighlight && (
         <mesh position={[0, 0.6, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.4, 0.45, 32]} />
           <meshBasicMaterial 
-            color={isSelected ? '#667eea' : '#764ba2'} 
+            color={highlightColor} 
             transparent 
-            opacity={0.8}
+            opacity={isInGroup && !isSelected && !isHovered ? 0.5 : 0.8}
             side={THREE.DoubleSide}
           />
         </mesh>
@@ -120,7 +120,7 @@ const Lamp = ({ state, isSelected, isHovered }) => {
   );
 };
 
-const AirConditioner = ({ state, isSelected, isHovered }) => {
+const AirConditioner = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
   const isOn = state.on;
   const mode = state.mode || 'cool';
   
@@ -164,13 +164,13 @@ const AirConditioner = ({ state, isSelected, isHovered }) => {
         </group>
       )}
 
-      {(isSelected || isHovered) && (
+      {showHighlight && (
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[1.3, 0.45, 0.3]} />
           <meshBasicMaterial 
-            color={isSelected ? '#667eea' : '#764ba2'} 
+            color={highlightColor} 
             transparent 
-            opacity={0.2}
+            opacity={isInGroup && !isSelected && !isHovered ? 0.15 : 0.2}
             wireframe
           />
         </mesh>
@@ -179,7 +179,7 @@ const AirConditioner = ({ state, isSelected, isHovered }) => {
   );
 };
 
-const TV = ({ state, isSelected, isHovered }) => {
+const TV = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
   const isOn = state.on;
   
   const screenColor = isOn ? '#1a1a2e' : '#0a0a0a';
@@ -233,13 +233,13 @@ const TV = ({ state, isSelected, isHovered }) => {
         <meshStandardMaterial color="#1a1a1a" metalness={0.4} roughness={0.3} />
       </mesh>
 
-      {(isSelected || isHovered) && (
+      {showHighlight && (
         <mesh position={[0, 0.4, 0]}>
           <boxGeometry args={[1.9, 1.1, 0.15]} />
           <meshBasicMaterial 
-            color={isSelected ? '#667eea' : '#764ba2'} 
+            color={highlightColor} 
             transparent 
-            opacity={0.2}
+            opacity={isInGroup && !isSelected && !isHovered ? 0.15 : 0.2}
             wireframe
           />
         </mesh>
@@ -248,7 +248,7 @@ const TV = ({ state, isSelected, isHovered }) => {
   );
 };
 
-const Speaker = ({ state, isSelected, isHovered }) => {
+const Speaker = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
   const isOn = state.on;
   const volume = state.volume || 60;
   
@@ -296,13 +296,13 @@ const Speaker = ({ state, isSelected, isHovered }) => {
         </group>
       )}
 
-      {(isSelected || isHovered) && (
+      {showHighlight && (
         <mesh position={[0, 0.25, 0]}>
           <boxGeometry args={[0.4, 0.6, 0.35]} />
           <meshBasicMaterial 
-            color={isSelected ? '#667eea' : '#764ba2'} 
+            color={highlightColor} 
             transparent 
-            opacity={0.2}
+            opacity={isInGroup && !isSelected && !isHovered ? 0.15 : 0.2}
             wireframe
           />
         </mesh>
@@ -311,7 +311,7 @@ const Speaker = ({ state, isSelected, isHovered }) => {
   );
 };
 
-const Camera = ({ state, isSelected, isHovered }) => {
+const Camera = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
   const isOn = state.on;
   const recording = state.recording || false;
 
@@ -351,13 +351,13 @@ const Camera = ({ state, isSelected, isHovered }) => {
         </mesh>
       )}
 
-      {(isSelected || isHovered) && (
+      {showHighlight && (
         <mesh position={[0, 0.15, 0]}>
           <cylinderGeometry args={[0.12, 0.14, 0.4, 16]} />
           <meshBasicMaterial 
-            color={isSelected ? '#667eea' : '#764ba2'} 
+            color={highlightColor} 
             transparent 
-            opacity={0.2}
+            opacity={isInGroup && !isSelected && !isHovered ? 0.15 : 0.2}
             wireframe
           />
         </mesh>
@@ -366,23 +366,26 @@ const Camera = ({ state, isSelected, isHovered }) => {
   );
 };
 
-const DeviceModel = forwardRef(({ device, onClick, onPointerOver, onPointerOut, isSelected, isHovered }, ref) => {
+const DeviceModel = forwardRef(({ device, onClick, onPointerOver, onPointerOut, isSelected, isHovered, isInGroup, groupColor }, ref) => {
   const { position, rotation, type, state } = device;
+
+  const highlightColor = isSelected ? '#667eea' : (isInGroup ? groupColor : '#764ba2');
+  const showHighlight = isSelected || isHovered || isInGroup;
 
   const renderDevice = () => {
     switch (type) {
       case 'light':
-        return <CeilingLight state={state} isSelected={isSelected} isHovered={isHovered} />;
+        return <CeilingLight state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       case 'lamp':
-        return <Lamp state={state} isSelected={isSelected} isHovered={isHovered} />;
+        return <Lamp state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       case 'ac':
-        return <AirConditioner state={state} isSelected={isSelected} isHovered={isHovered} />;
+        return <AirConditioner state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       case 'tv':
-        return <TV state={state} isSelected={isSelected} isHovered={isHovered} />;
+        return <TV state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       case 'speaker':
-        return <Speaker state={state} isSelected={isSelected} isHovered={isHovered} />;
+        return <Speaker state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       case 'camera':
-        return <Camera state={state} isSelected={isSelected} isHovered={isHovered} />;
+        return <Camera state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       default:
         return (
           <mesh castShadow>

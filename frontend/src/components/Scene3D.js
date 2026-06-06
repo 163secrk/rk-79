@@ -17,8 +17,10 @@ function CameraController({ targetPosition }) {
 function SceneContent({ 
   devices, 
   selectedDevice, 
+  selectedGroup,
   onDeviceMove, 
   onDeviceSelect,
+  onGroupSelect,
   transformMode,
   setTransformMode
 }) {
@@ -31,6 +33,15 @@ function SceneContent({
       transformRef.current.attach(meshRefs.current[selectedDevice.id]);
     }
   }, [selectedDevice]);
+
+  const isInSelectedGroup = (deviceId) => {
+    if (!selectedGroup) return false;
+    return selectedGroup.deviceIds?.includes(deviceId);
+  };
+
+  const getGroupHighlightColor = () => {
+    return selectedGroup?.color || '#667eea';
+  };
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -124,6 +135,8 @@ function SceneContent({
             }}
             isSelected={selectedDevice?.id === device.id}
             isHovered={hoveredId === device.id}
+            isInGroup={isInSelectedGroup(device.id)}
+            groupColor={getGroupHighlightColor()}
           />
         </group>
       ))}
@@ -150,7 +163,7 @@ function SceneContent({
   );
 }
 
-function Scene3D({ devices, selectedDevice, onDeviceMove, onDeviceSelect }) {
+function Scene3D({ devices, selectedDevice, selectedGroup, onDeviceMove, onDeviceSelect, onGroupSelect }) {
   const [transformMode, setTransformMode] = useState('translate');
 
   return (
@@ -165,8 +178,10 @@ function Scene3D({ devices, selectedDevice, onDeviceMove, onDeviceSelect }) {
         <SceneContent
           devices={devices}
           selectedDevice={selectedDevice}
+          selectedGroup={selectedGroup}
           onDeviceMove={onDeviceMove}
           onDeviceSelect={onDeviceSelect}
+          onGroupSelect={onGroupSelect}
           transformMode={transformMode}
           setTransformMode={setTransformMode}
         />

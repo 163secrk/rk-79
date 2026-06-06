@@ -62,4 +62,29 @@ export const checkHealth = async () => {
   return response.data;
 };
 
+export const getGroups = async () => {
+  const response = await api.get('/groups');
+  return response.data;
+};
+
+export const createGroup = async (group) => {
+  const response = await api.post('/groups', { group });
+  return response.data;
+};
+
+export const updateGroup = async (id, data) => {
+  const response = await api.put(`/groups/${id}`, data);
+  return response.data;
+};
+
+export const deleteGroup = async (id) => {
+  const response = await api.delete(`/groups/${id}`);
+  return response.data;
+};
+
+export const updateGroupState = async (id, state) => {
+  const response = await api.put(`/groups/${id}/state`, state);
+  return response.data;
+};
+
 export default api;
