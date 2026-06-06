@@ -4,6 +4,7 @@
       "id": "light-1",
       "type": "light",
       "name": "客厅主灯",
+      "ratedPower": 30,
       "position": {
         "x": 0,
         "y": 2.8,
@@ -24,6 +25,7 @@
       "id": "ac-1",
       "type": "ac",
       "name": "客厅空调",
+      "ratedPower": 1500,
       "position": {
         "x": -3.5,
         "y": 2,
@@ -44,6 +46,7 @@
       "id": "tv-1",
       "type": "tv",
       "name": "客厅电视",
+      "ratedPower": 100,
       "position": {
         "x": 0,
         "y": -3.27,
@@ -64,6 +67,7 @@
       "id": "light-2",
       "type": "lamp",
       "name": "落地灯",
+      "ratedPower": 15,
       "position": {
         "x": 2.54,
         "y": -0.17,
@@ -84,6 +88,7 @@
       "id": "tv-1780667654343",
       "type": "tv",
       "name": "电视",
+      "ratedPower": 100,
       "position": {
         "x": -5.88,
         "y": -3.51,
@@ -104,6 +109,7 @@
       "id": "ac-1780667704895",
       "type": "ac",
       "name": "空调",
+      "ratedPower": 1500,
       "position": {
         "x": 2.46,
         "y": 1.06,
@@ -124,6 +130,7 @@
       "id": "camera-1780667724960",
       "type": "camera",
       "name": "摄像头",
+      "ratedPower": 10,
       "position": {
         "x": -2.78,
         "y": -1.43,
@@ -143,6 +150,7 @@
       "id": "tv-1780704882272",
       "type": "tv",
       "name": "电视",
+      "ratedPower": 100,
       "position": {
         "x": -0.03,
         "y": 1.51,
@@ -163,6 +171,7 @@
       "id": "camera-1780705020688",
       "type": "camera",
       "name": "摄像头",
+      "ratedPower": 10,
       "position": {
         "x": -4.07,
         "y": -1.21,
@@ -182,6 +191,7 @@
       "id": "camera-1780705062992",
       "type": "camera",
       "name": "摄像头",
+      "ratedPower": 10,
       "position": {
         "x": 0,
         "y": 4.24,
@@ -201,6 +211,7 @@
       "id": "camera-1780705094576",
       "type": "camera",
       "name": "摄像头",
+      "ratedPower": 10,
       "position": {
         "x": 2.09,
         "y": 2.14,
@@ -220,6 +231,7 @@
       "id": "tv-1780707851631",
       "type": "tv",
       "name": "电视",
+      "ratedPower": 100,
       "position": {
         "x": -3.74,
         "y": 1.47,
@@ -240,6 +252,7 @@
       "id": "lamp-1780707936096",
       "type": "lamp",
       "name": "台灯",
+      "ratedPower": 15,
       "position": {
         "x": -1.24,
         "y": 0.64,

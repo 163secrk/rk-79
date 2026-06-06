@@ -3,6 +3,7 @@ import { getDevices, saveDevices, updateDeviceState, getSchedules, createSchedul
 import Scene3D from './components/Scene3D';
 import ControlPanel from './components/ControlPanel';
 import DeviceLibrary from './components/DeviceLibrary';
+import EnergyDashboard from './components/EnergyDashboard';
 import './App.css';
 
 const defaultDevices = [
@@ -10,6 +11,7 @@ const defaultDevices = [
     id: 'light-1',
     type: 'light',
     name: '客厅主灯',
+    ratedPower: 30,
     position: { x: 0, y: 2.8, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
     state: { on: true, brightness: 80, color: '#ffffff' }
@@ -18,6 +20,7 @@ const defaultDevices = [
     id: 'ac-1',
     type: 'ac',
     name: '客厅空调',
+    ratedPower: 1500,
     position: { x: -3.5, y: 2, z: -3.5 },
     rotation: { x: 0, y: 0.785, z: 0 },
     state: { on: true, temperature: 24, mode: 'cool' }
@@ -26,6 +29,7 @@ const defaultDevices = [
     id: 'tv-1',
     type: 'tv',
     name: '客厅电视',
+    ratedPower: 100,
     position: { x: 0, y: 1.2, z: -3.8 },
     rotation: { x: 0, y: 0, z: 0 },
     state: { on: false, volume: 50, channel: 1 }
@@ -34,11 +38,21 @@ const defaultDevices = [
     id: 'light-2',
     type: 'lamp',
     name: '落地灯',
+    ratedPower: 15,
     position: { x: 2.5, y: 0, z: 2 },
     rotation: { x: 0, y: -1.047, z: 0 },
     state: { on: true, brightness: 60, color: '#ffd700' }
   }
 ];
+
+const deviceRatedPower = {
+  light: 30,
+  lamp: 15,
+  ac: 1500,
+  tv: 100,
+  speaker: 50,
+  camera: 10
+};
 
 function App() {
   const [devices, setDevices] = useState([]);
@@ -47,6 +61,7 @@ function App() {
   const [message, setMessage] = useState(null);
   const [schedules, setSchedules] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(true);
   const autoSaveTimerRef = useRef(null);
   const lastSavedRef = useRef(null);
 
@@ -170,6 +185,7 @@ function App() {
       id: newId,
       type: deviceType,
       name: typeNames[deviceType] || deviceType,
+      ratedPower: deviceRatedPower[deviceType] || 0,
       position: { x: 0, y: 1.5, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
       state: getDefaultState(deviceType)
@@ -263,6 +279,9 @@ function App() {
           <span className={`save-status ${isSaving ? 'saving' : 'saved'}`}>
             {isSaving ? '💾 保存中...' : '✓ 自动保存已开启'}
           </span>
+          <button className={`btn ${showDashboard ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setShowDashboard(!showDashboard)}>
+            ⚡ {showDashboard ? '隐藏能耗' : '显示能耗'}
+          </button>
           <button className="btn btn-primary" onClick={handleSave}>
             💾 立即保存
           </button>
@@ -282,6 +301,11 @@ function App() {
             onDeviceMove={handleDeviceMove}
             onDeviceSelect={handleDeviceSelect}
           />
+          {showDashboard && (
+            <div className="dashboard-overlay">
+              <EnergyDashboard devices={devices} />
+            </div>
+          )}
         </div>
 
         <ControlPanel
