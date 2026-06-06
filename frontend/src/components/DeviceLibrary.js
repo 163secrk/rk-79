@@ -9,6 +9,9 @@ const deviceTypes = [
   { type: 'camera', name: '摄像头', icon: '📷' },
   { type: 'fridge', name: '冰箱', icon: '🧊' },
   { type: 'curtain', name: '窗帘', icon: '🪟' },
+  { type: 'sensor-temp-humidity', name: '温湿度传感器', icon: '🌡️' },
+  { type: 'sensor-motion', name: '人体红外传感器', icon: '👁️' },
+  { type: 'sensor-smoke', name: '烟雾报警器', icon: '🚨' },
 ];
 
 function DeviceLibrary({ onAddDevice, groups, selectedGroup, onGroupSelect, onManageGroups, currentRoom }) {

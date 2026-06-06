@@ -1,5 +1,59 @@
 {
-  "activeSceneId": null,
-  "activeSceneActivatedAt": null,
-  "lastDeviceStates": {}
+  "activeSceneId": "scene-movie",
+  "activeSceneActivatedAt": "2026-06-06T06:13:52.659Z",
+  "lastDeviceStates": {
+    "light-1": {
+      "on": false,
+      "brightness": 29,
+      "color": "#c48787",
+      "temperature": 30,
+      "mode": "heat"
+    },
+    "light-3": {
+      "on": false,
+      "brightness": 50,
+      "color": "#ffe4b5",
+      "temperature": 2700
+    },
+    "ac-1": {
+      "on": true,
+      "temperature": 26,
+      "mode": "cool",
+      "brightness": 29,
+      "color": "#c48787"
+    },
+    "ac-2": {
+      "on": false,
+      "temperature": 26,
+      "mode": "cool"
+    },
+    "light-2": {
+      "on": false,
+      "brightness": 29,
+      "color": "#c48787",
+      "temperature": 30,
+      "mode": "heat"
+    },
+    "tv-1": {
+      "on": false,
+      "volume": 30,
+      "channel": 1,
+      "brightness": 29,
+      "temperature": 30,
+      "mode": "heat",
+      "color": "#c48787"
+    },
+    "camera-1": {
+      "on": true,
+      "recording": true
+    },
+    "speaker-1": {
+      "on": true,
+      "volume": 40,
+      "brightness": 29,
+      "temperature": 30,
+      "mode": "heat",
+      "color": "#c48787"
+    }
+  }
 }

@@ -8,7 +8,10 @@ const typeNames = {
   speaker: '音箱',
   camera: '摄像头',
   fridge: '冰箱',
-  curtain: '窗帘'
+  curtain: '窗帘',
+  'sensor-temp-humidity': '温湿度传感器',
+  'sensor-motion': '人体红外传感器',
+  'sensor-smoke': '烟雾报警器'
 };
 
 const typeIcons = {
@@ -19,7 +22,10 @@ const typeIcons = {
   speaker: '🔊',
   camera: '📷',
   fridge: '🧊',
-  curtain: '🪟'
+  curtain: '🪟',
+  'sensor-temp-humidity': '🌡️',
+  'sensor-motion': '👁️',
+  'sensor-smoke': '🚨'
 };
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -266,6 +272,113 @@ function CurtainControls({ state, onStateChange }) {
   );
 }
 
+function TempHumiditySensorControls({ state, onStateChange }) {
+  return (
+    <>
+      <Switch 
+        label="电源" 
+        checked={state.on} 
+        onChange={() => onStateChange({ on: !state.on })} 
+      />
+      {state.on && (
+        <div className="control-section">
+          <h4>实时数据</h4>
+          <div className="sensor-data-display">
+            <div className="sensor-data-item">
+              <span className="sensor-data-icon">🌡️</span>
+              <div className="sensor-data-info">
+                <span className="sensor-data-label">温度</span>
+                <span className="sensor-data-value" style={{ color: state.temperature > 28 ? '#ff4444' : state.temperature < 18 ? '#4488ff' : '#44ff44' }}>
+                  {state.temperature !== undefined ? state.temperature.toFixed(1) : '--'}°C
+                </span>
+              </div>
+            </div>
+            <div className="sensor-data-item">
+              <span className="sensor-data-icon">💧</span>
+              <div className="sensor-data-info">
+                <span className="sensor-data-label">湿度</span>
+                <span className="sensor-data-value" style={{ color: state.humidity > 70 ? '#ff8844' : state.humidity < 30 ? '#ffaa44' : '#44aaff' }}>
+                  {state.humidity !== undefined ? state.humidity.toFixed(1) : '--'}%
+                </span>
+              </div>
+            </div>
+          </div>
+          <p className="sensor-hint">传感器数据实时更新，可作为自动化规则触发条件</p>
+        </div>
+      )}
+    </>
+  );
+}
+
+function MotionSensorControls({ state, onStateChange }) {
+  return (
+    <>
+      <Switch 
+        label="电源" 
+        checked={state.on} 
+        onChange={() => onStateChange({ on: !state.on })} 
+      />
+      {state.on && (
+        <div className="control-section">
+          <h4>检测状态</h4>
+          <div className="sensor-data-display">
+            <div className="sensor-data-item">
+              <span className={`sensor-data-icon ${state.motionDetected ? 'pulse' : ''}`}>
+                {state.motionDetected ? '🚶' : '👁️'}
+              </span>
+              <div className="sensor-data-info">
+                <span className="sensor-data-label">人体检测</span>
+                <span className={`sensor-data-value ${state.motionDetected ? 'status-active' : 'status-idle'}`}>
+                  {state.motionDetected ? '检测到人体' : '未检测到'}
+                </span>
+              </div>
+            </div>
+          </div>
+          <p className="sensor-hint">检测到人体移动时可触发自动化规则（如开灯、报警等）</p>
+        </div>
+      )}
+    </>
+  );
+}
+
+function SmokeAlarmControls({ state, onStateChange }) {
+  return (
+    <>
+      <Switch 
+        label="电源" 
+        checked={state.on} 
+        onChange={() => onStateChange({ on: !state.on })} 
+      />
+      {state.on && (
+        <>
+          <div className="control-section">
+            <h4>烟雾检测</h4>
+            <div className="sensor-data-display">
+              <div className="sensor-data-item">
+                <span className={`sensor-data-icon ${state.smokeDetected ? 'pulse' : ''}`}>
+                  {state.smokeDetected ? '🔥' : '💨'}
+                </span>
+                <div className="sensor-data-info">
+                  <span className="sensor-data-label">烟雾浓度</span>
+                  <span className={`sensor-data-value ${state.smokeDetected ? 'status-danger' : 'status-normal'}`}>
+                    {state.smokeDetected ? '检测到烟雾' : '正常'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Switch 
+            label="声光报警" 
+            checked={state.alarmActive} 
+            onChange={() => onStateChange({ alarmActive: !state.alarmActive })} 
+          />
+          <p className="sensor-hint">检测到烟雾时自动触发报警，并可联动其他设备（如开启排风扇、推送通知等）</p>
+        </>
+      )}
+    </>
+  );
+}
+
 function renderControls(type, state, onStateChange) {
   switch (type) {
     case 'light':
@@ -283,6 +396,12 @@ function renderControls(type, state, onStateChange) {
       return <FridgeControls state={state} onStateChange={onStateChange} />;
     case 'curtain':
       return <CurtainControls state={state} onStateChange={onStateChange} />;
+    case 'sensor-temp-humidity':
+      return <TempHumiditySensorControls state={state} onStateChange={onStateChange} />;
+    case 'sensor-motion':
+      return <MotionSensorControls state={state} onStateChange={onStateChange} />;
+    case 'sensor-smoke':
+      return <SmokeAlarmControls state={state} onStateChange={onStateChange} />;
     default:
       return <Switch label="电源" checked={state.on} onChange={() => onStateChange({ on: !state.on })} />;
   }
@@ -299,6 +418,9 @@ function getStatePreview(targetState) {
   if (targetState.temperature !== undefined) {
     parts.push(`${targetState.temperature}°C`);
   }
+  if (targetState.humidity !== undefined) {
+    parts.push(`湿度${targetState.humidity}%`);
+  }
   if (targetState.volume !== undefined) {
     parts.push(`音量${targetState.volume}`);
   }
@@ -311,6 +433,15 @@ function getStatePreview(targetState) {
   }
   if (targetState.recording !== undefined) {
     parts.push(targetState.recording ? '录像中' : '未录像');
+  }
+  if (targetState.motionDetected !== undefined) {
+    parts.push(targetState.motionDetected ? '检测到人体' : '未检测到人体');
+  }
+  if (targetState.smokeDetected !== undefined) {
+    parts.push(targetState.smokeDetected ? '检测到烟雾' : '烟雾正常');
+  }
+  if (targetState.alarmActive !== undefined) {
+    parts.push(targetState.alarmActive ? '报警中' : '报警关闭');
   }
   return parts.join(' · ');
 }

@@ -18,7 +18,7 @@
       },
       "state": {
         "on": true,
-        "brightness": 29,
+        "brightness": 30,
         "color": "#c48787",
         "temperature": 30,
         "mode": "heat"
@@ -41,8 +41,8 @@
         "z": 0
       },
       "state": {
-        "on": true,
-        "temperature": 24,
+        "on": false,
+        "temperature": 26,
         "mode": "cool",
         "brightness": 29,
         "color": "#c48787"
@@ -92,7 +92,7 @@
       },
       "state": {
         "on": true,
-        "brightness": 29,
+        "brightness": 20,
         "color": "#c48787",
         "temperature": 30,
         "mode": "heat"
@@ -138,7 +138,7 @@
         "z": 0
       },
       "state": {
-        "on": false,
+        "on": true,
         "temperature": 26,
         "mode": "cool"
       }
@@ -273,7 +273,7 @@
       },
       "state": {
         "on": true,
-        "volume": 40,
+        "volume": 30,
         "brightness": 29,
         "temperature": 30,
         "mode": "heat",
@@ -447,6 +447,137 @@
         "volume": 50,
         "channel": 1
       }
+    },
+    {
+      "id": "sensor-temp-humidity-1",
+      "type": "sensor-temp-humidity",
+      "name": "客厅温湿度传感器",
+      "roomId": "room-living",
+      "ratedPower": 2,
+      "position": {
+        "x": 3,
+        "y": 2.5,
+        "z": -3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "state": {
+        "on": true,
+        "temperature": 24.300504703756,
+        "humidity": 54.95025286046012
+      }
+    },
+    {
+      "id": "sensor-temp-humidity-2",
+      "type": "sensor-temp-humidity",
+      "name": "卧室温湿度传感器",
+      "roomId": "room-bedroom",
+      "ratedPower": 2,
+      "position": {
+        "x": 3,
+        "y": 2.5,
+        "z": -3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "state": {
+        "on": true,
+        "temperature": 26.490102214775394,
+        "humidity": 48.27282957647553
+      }
+    },
+    {
+      "id": "sensor-motion-1",
+      "type": "sensor-motion",
+      "name": "客厅人体传感器",
+      "roomId": "room-living",
+      "ratedPower": 3,
+      "position": {
+        "x": -3,
+        "y": 2.6,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.57,
+        "z": 0
+      },
+      "state": {
+        "on": true,
+        "motionDetected": false
+      }
+    },
+    {
+      "id": "sensor-motion-2",
+      "type": "sensor-motion",
+      "name": "卧室人体传感器",
+      "roomId": "room-bedroom",
+      "ratedPower": 3,
+      "position": {
+        "x": -3,
+        "y": 2.6,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.57,
+        "z": 0
+      },
+      "state": {
+        "on": true,
+        "motionDetected": true
+      }
+    },
+    {
+      "id": "sensor-smoke-1",
+      "type": "sensor-smoke",
+      "name": "客厅烟雾报警器",
+      "roomId": "room-living",
+      "ratedPower": 5,
+      "position": {
+        "x": 0,
+        "y": 2.9,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "state": {
+        "on": true,
+        "smokeDetected": false,
+        "alarmActive": false
+      }
+    },
+    {
+      "id": "sensor-smoke-2",
+      "type": "sensor-smoke",
+      "name": "厨房烟雾报警器",
+      "roomId": "room-kitchen",
+      "ratedPower": 5,
+      "position": {
+        "x": 0,
+        "y": 2.9,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "state": {
+        "on": true,
+        "smokeDetected": true,
+        "alarmActive": true
+      }
     }
   ]
+}
 }

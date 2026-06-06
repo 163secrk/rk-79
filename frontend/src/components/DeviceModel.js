@@ -492,6 +492,247 @@ const Camera = ({ state, isSelected, isHovered, isInGroup, highlightColor, showH
   );
 };
 
+const TemperatureHumiditySensor = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
+  const isOn = state.on;
+  const temperature = state.temperature !== undefined ? state.temperature : 25;
+  const humidity = state.humidity !== undefined ? state.humidity : 50;
+  
+  const tempColor = temperature > 28 ? '#ff4444' : temperature < 18 ? '#4488ff' : '#44ff44';
+  const humidityColor = humidity > 70 ? '#ff9944' : humidity < 30 ? '#4488ff' : '#44aaff';
+
+  return (
+    <group>
+      <mesh position={[0, 0.12, 0]} castShadow>
+        <boxGeometry args={[0.15, 0.24, 0.08]} />
+        <meshStandardMaterial color="#ffffff" metalness={0.4} roughness={0.5} />
+      </mesh>
+      
+      <mesh position={[0, 0.12, 0.045]} castShadow>
+        <boxGeometry args={[0.12, 0.18, 0.01]} />
+        <meshStandardMaterial 
+          color="#1a1a2e"
+          emissive={isOn ? '#1a2a3e' : '#000000'}
+          emissiveIntensity={isOn ? 0.3 : 0}
+        />
+      </mesh>
+      
+      {isOn && (
+        <>
+          <mesh position={[-0.02, 0.16, 0.052]}>
+            <boxGeometry args={[0.02, 0.02, 0.005]} />
+            <meshStandardMaterial 
+              color={tempColor}
+              emissive={tempColor}
+              emissiveIntensity={0.8}
+            />
+          </mesh>
+          
+          <mesh position={[0.02, 0.08, 0.052]}>
+            <boxGeometry args={[0.02, 0.02, 0.005]} />
+            <meshStandardMaterial 
+              color={humidityColor}
+              emissive={humidityColor}
+              emissiveIntensity={0.8}
+            />
+          </mesh>
+        </>
+      )}
+      
+      <mesh position={[0, -0.02, 0]} castShadow>
+        <cylinderGeometry args={[0.015, 0.015, 0.08, 8]} />
+        <meshStandardMaterial color="#888888" />
+      </mesh>
+      
+      <mesh position={[0, -0.06, 0]} castShadow>
+        <sphereGeometry args={[0.02, 16, 16]} />
+        <meshStandardMaterial color="#666666" />
+      </mesh>
+
+      {showHighlight && (
+        <mesh position={[0, 0.12, 0]}>
+          <boxGeometry args={[0.2, 0.3, 0.15]} />
+          <meshBasicMaterial 
+            color={highlightColor} 
+            transparent 
+            opacity={isInGroup && !isSelected && !isHovered ? 0.15 : 0.2}
+            wireframe
+          />
+        </mesh>
+      )}
+    </group>
+  );
+};
+
+const MotionSensor = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
+  const isOn = state.on;
+  const motionDetected = state.motionDetected || false;
+
+  return (
+    <group>
+      <mesh position={[0, 0.15, 0]} castShadow>
+        <cylinderGeometry args={[0.08, 0.1, 0.1, 16]} />
+        <meshStandardMaterial color="#ffffff" metalness={0.4} roughness={0.4} />
+      </mesh>
+      
+      <mesh position={[0, 0.22, 0]} rotation={[0, 0, 0]} castShadow>
+        <sphereGeometry args={[0.07, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial 
+          color={motionDetected ? '#ff6644' : '#333344'}
+          emissive={isOn ? (motionDetected ? '#ff4444' : '#4466aa') : '#000000'}
+          emissiveIntensity={isOn ? (motionDetected ? 0.8 : 0.3) : 0}
+        />
+      </mesh>
+      
+      <mesh position={[0, 0.22, 0.03]} rotation={[0, 0, 0]} castShadow>
+        <sphereGeometry args={[0.05, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial 
+          color="#1a1a2a"
+          emissive={isOn && motionDetected ? '#ff6666' : '#000000'}
+          emissiveIntensity={isOn && motionDetected ? 0.6 : 0}
+          transparent
+          opacity={0.8}
+        />
+      </mesh>
+      
+      {motionDetected && isOn && (
+        <>
+          {[...Array(4)].map((_, i) => (
+            <mesh 
+              key={i} 
+              position={[
+                Math.cos(i * Math.PI / 2) * 0.12, 
+                0.22, 
+                Math.sin(i * Math.PI / 2) * 0.12
+              ]}
+              rotation={[Math.PI / 2, 0, i * Math.PI / 2]}
+            >
+              <ringGeometry args={[0.02, 0.03, 16]} />
+              <meshStandardMaterial 
+                color="#ff4444"
+                emissive="#ff4444"
+                emissiveIntensity={0.8}
+                transparent
+                opacity={0.7}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          ))}
+        </>
+      )}
+
+      {showHighlight && (
+        <mesh position={[0, 0.15, 0]}>
+          <cylinderGeometry args={[0.14, 0.16, 0.25, 16]} />
+          <meshBasicMaterial 
+            color={highlightColor} 
+            transparent 
+            opacity={isInGroup && !isSelected && !isHovered ? 0.15 : 0.2}
+            wireframe
+          />
+        </mesh>
+      )}
+    </group>
+  );
+};
+
+const SmokeAlarm = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
+  const isOn = state.on;
+  const smokeDetected = state.smokeDetected || false;
+  const alarmActive = state.alarmActive || false;
+
+  return (
+    <group>
+      <mesh position={[0, -0.05, 0]} castShadow>
+        <cylinderGeometry args={[0.15, 0.12, 0.05, 32]} />
+        <meshStandardMaterial color="#ffffff" metalness={0.3} roughness={0.5} />
+      </mesh>
+      
+      <mesh position={[0, -0.12, 0]} castShadow>
+        <cylinderGeometry args={[0.12, 0.15, 0.1, 32]} />
+        <meshStandardMaterial color="#f5f5f5" metalness={0.2} roughness={0.6} />
+      </mesh>
+      
+      <mesh position={[0, -0.18, 0]} castShadow>
+        <cylinderGeometry args={[0.1, 0.12, 0.03, 32]} />
+        <meshStandardMaterial 
+          color={smokeDetected ? '#ff3333' : '#e0e0e0'}
+          emissive={alarmActive ? '#ff0000' : '#000000'}
+          emissiveIntensity={alarmActive ? 0.8 : 0}
+        />
+      </mesh>
+      
+      {[...Array(6)].map((_, i) => (
+        <mesh 
+          key={i} 
+          position={[
+            Math.cos(i * Math.PI / 3) * 0.08, 
+            -0.18, 
+            Math.sin(i * Math.PI / 3) * 0.08
+          ]} 
+          castShadow
+        >
+          <cylinderGeometry args={[0.012, 0.012, 0.05, 8]} />
+          <meshStandardMaterial 
+            color={alarmActive ? '#ff4444' : '#666666'}
+            emissive={alarmActive ? '#ff2222' : '#000000'}
+            emissiveIntensity={alarmActive ? 0.6 : 0}
+          />
+        </mesh>
+      ))}
+      
+      {alarmActive && (
+        <>
+          <pointLight 
+            position={[0, -0.2, 0]} 
+            color="#ff0000"
+            intensity={2}
+            distance={5}
+            decay={2}
+          />
+          {[...Array(3)].map((_, i) => (
+            <mesh 
+              key={`pulse-${i}`} 
+              position={[0, -0.2, 0]}
+            >
+              <ringGeometry args={[0.1 + i * 0.05, 0.12 + i * 0.05, 32]} />
+              <meshBasicMaterial 
+                color="#ff0000"
+                emissive="#ff0000"
+                emissiveIntensity={0.8 - i * 0.2}
+                transparent
+                opacity={0.6 - i * 0.15}
+                side={THREE.DoubleSide}
+                rotation={[-Math.PI / 2, 0, 0]}
+              />
+            </mesh>
+          ))}
+        </>
+      )}
+      
+      <mesh position={[0, -0.1, 0.1]} castShadow>
+        <boxGeometry args={[0.03, 0.03, 0.01]} />
+        <meshStandardMaterial 
+          color={isOn ? '#44ff44' : '#888888'}
+          emissive={isOn ? '#44ff44' : '#000000'}
+          emissiveIntensity={isOn ? 0.5 : 0}
+        />
+      </mesh>
+
+      {showHighlight && (
+        <mesh position={[0, -0.12, 0]}>
+          <cylinderGeometry args={[0.2, 0.2, 0.25, 32]} />
+          <meshBasicMaterial 
+            color={highlightColor} 
+            transparent 
+            opacity={isInGroup && !isSelected && !isHovered ? 0.15 : 0.2}
+            wireframe
+          />
+        </mesh>
+      )}
+    </group>
+  );
+};
+
 const DeviceModel = forwardRef(({ device, onClick, onPointerOver, onPointerOut, isSelected, isHovered, isInGroup, groupColor }, ref) => {
   const { position, rotation, type, state } = device;
 
@@ -516,6 +757,12 @@ const DeviceModel = forwardRef(({ device, onClick, onPointerOver, onPointerOut, 
         return <Fridge state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       case 'curtain':
         return <Curtain state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
+      case 'sensor-temp-humidity':
+        return <TemperatureHumiditySensor state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
+      case 'sensor-motion':
+        return <MotionSensor state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
+      case 'sensor-smoke':
+        return <SmokeAlarm state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       default:
         return (
           <mesh castShadow>

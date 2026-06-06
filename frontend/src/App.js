@@ -140,6 +140,66 @@ const defaultDevices = [
     position: { x: -3, y: 2.5, z: -3 },
     rotation: { x: 0, y: 0.785, z: 0 },
     state: { on: true, recording: false }
+  },
+  {
+    id: 'sensor-temp-humidity-1',
+    type: 'sensor-temp-humidity',
+    name: '客厅温湿度传感器',
+    roomId: 'room-living',
+    ratedPower: 2,
+    position: { x: 3, y: 2.5, z: -3 },
+    rotation: { x: 0, y: 0, z: 0 },
+    state: { on: true, temperature: 24.5, humidity: 55 }
+  },
+  {
+    id: 'sensor-temp-humidity-2',
+    type: 'sensor-temp-humidity',
+    name: '卧室温湿度传感器',
+    roomId: 'room-bedroom',
+    ratedPower: 2,
+    position: { x: 3, y: 2.5, z: -3 },
+    rotation: { x: 0, y: 0, z: 0 },
+    state: { on: true, temperature: 26, humidity: 50 }
+  },
+  {
+    id: 'sensor-motion-1',
+    type: 'sensor-motion',
+    name: '客厅人体传感器',
+    roomId: 'room-living',
+    ratedPower: 3,
+    position: { x: -3, y: 2.6, z: 0 },
+    rotation: { x: 0, y: 1.57, z: 0 },
+    state: { on: true, motionDetected: false }
+  },
+  {
+    id: 'sensor-motion-2',
+    type: 'sensor-motion',
+    name: '卧室人体传感器',
+    roomId: 'room-bedroom',
+    ratedPower: 3,
+    position: { x: -3, y: 2.6, z: 0 },
+    rotation: { x: 0, y: 1.57, z: 0 },
+    state: { on: true, motionDetected: false }
+  },
+  {
+    id: 'sensor-smoke-1',
+    type: 'sensor-smoke',
+    name: '客厅烟雾报警器',
+    roomId: 'room-living',
+    ratedPower: 5,
+    position: { x: 0, y: 2.9, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    state: { on: true, smokeDetected: false, alarmActive: false }
+  },
+  {
+    id: 'sensor-smoke-2',
+    type: 'sensor-smoke',
+    name: '厨房烟雾报警器',
+    roomId: 'room-kitchen',
+    ratedPower: 5,
+    position: { x: 0, y: 2.9, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    state: { on: true, smokeDetected: false, alarmActive: false }
   }
 ];
 
@@ -151,7 +211,10 @@ const deviceRatedPower = {
   speaker: 50,
   camera: 10,
   fridge: 200,
-  curtain: 50
+  curtain: 50,
+  'sensor-temp-humidity': 2,
+  'sensor-motion': 3,
+  'sensor-smoke': 5
 };
 
 const defaultGroups = [
@@ -268,17 +331,16 @@ const defaultAutomations = [
   {
     id: 'auto-temp-ac',
     name: '高温自动开空调',
-    description: '当温度高于28度时自动开启空调',
+    description: '当客厅温度高于28度时自动开启空调',
     enabled: true,
     trigger: {
       type: 'device_state',
-      deviceId: 'sensor-temp',
-      condition: 'temperature_above',
+      deviceId: 'sensor-temp-humidity-1',
+      condition: 'sensor_temp_above',
       value: 28
     },
     actions: [
-      { deviceId: 'ac-1', state: { on: true, temperature: 24, mode: 'cool' } },
-      { deviceId: 'ac-2', state: { on: true, temperature: 25, mode: 'cool' } }
+      { deviceId: 'ac-1', state: { on: true, temperature: 24, mode: 'cool' } }
     ],
     isPreset: true,
     createdAt: new Date().toISOString()
@@ -286,11 +348,11 @@ const defaultAutomations = [
   {
     id: 'auto-light-motion',
     name: '夜间感应开灯',
-    description: '检测到移动时自动开启灯光',
+    description: '检测到人体移动时自动开启卧室灯光',
     enabled: false,
     trigger: {
       type: 'device_state',
-      deviceId: 'sensor-motion',
+      deviceId: 'sensor-motion-2',
       condition: 'motion_detected',
       value: true
     },
@@ -301,21 +363,48 @@ const defaultAutomations = [
     createdAt: new Date().toISOString()
   },
   {
-    id: 'auto-energy-save',
-    name: '节能模式',
-    description: '当所有设备开启超过2小时且无人时自动关闭',
-    enabled: false,
+    id: 'auto-smoke-alarm',
+    name: '烟雾报警联动',
+    description: '检测到烟雾时自动报警并开启所有灯光',
+    enabled: true,
     trigger: {
-      type: 'time_duration',
-      condition: 'all_on_duration',
-      value: 120
+      type: 'device_state',
+      deviceId: 'sensor-smoke-1',
+      condition: 'smoke_detected',
+      value: true
     },
     actions: [
-      { deviceId: 'tv-1', state: { on: false } },
-      { deviceId: 'light-1', state: { on: false } },
-      { deviceId: 'ac-1', state: { on: false } }
+      { deviceId: 'light-1', state: { on: true, brightness: 100, color: '#ff0000' } },
+      { deviceId: 'light-2', state: { on: true, brightness: 100, color: '#ff0000' } }
     ],
     isPreset: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'auto-humidity-notify',
+    name: '高湿度提醒',
+    description: '当卧室湿度高于70%时自动开启空调除湿',
+    enabled: false,
+    trigger: {
+      type: 'device_state',
+      deviceId: 'sensor-temp-humidity-2',
+      condition: 'humidity_above',
+      value: 70
+    },
+    actions: [
+      { deviceId: 'ac-2', state: { on: true, mode: 'dry', temperature: 26 } }
+    ],
+    isPreset: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'auto-evening-light',
+    name: '傍晚自动开灯',
+    description: '每天18:00自动开启客厅主灯',
+    enabled: true,
+    isPreset: true,
+    trigger: { type: 'time', condition: 'time_equals', value: '18:00' },
+    actions: [{ deviceId: 'light-1', state: { on: true, brightness: 80, color: '#ffffff' } }],
     createdAt: new Date().toISOString()
   }
 ];
@@ -509,6 +598,12 @@ function App() {
         return { on: true, temperature: 4 };
       case 'curtain':
         return { on: true, openPercent: 70 };
+      case 'sensor-temp-humidity':
+        return { on: true, temperature: 25, humidity: 50 };
+      case 'sensor-motion':
+        return { on: true, motionDetected: false };
+      case 'sensor-smoke':
+        return { on: true, smokeDetected: false, alarmActive: false };
       default:
         return { on: false };
     }
@@ -524,7 +619,10 @@ function App() {
       speaker: '音箱',
       camera: '摄像头',
       fridge: '冰箱',
-      curtain: '窗帘'
+      curtain: '窗帘',
+      'sensor-temp-humidity': '温湿度传感器',
+      'sensor-motion': '人体红外传感器',
+      'sensor-smoke': '烟雾报警器'
     };
     
     const newDevice = {
@@ -864,7 +962,7 @@ function App() {
         if (!confirmed) return;
       }
 
-      const result = await activateScene(sceneId);
+      await activateScene(sceneId);
       scene.deviceStates.forEach(({ deviceId, state }) => {
         setDevices(prev => prev.map(d =>
           d.id === deviceId ? { ...d, state: { ...d.state, ...state } } : d
@@ -1107,6 +1205,46 @@ function App() {
               conditionMet = device.state.temperature < trigger.value;
             }
             break;
+          case 'sensor_temp_above':
+            if (device.type === 'sensor-temp-humidity' && device.state.on) {
+              conditionMet = device.state.temperature > trigger.value;
+            }
+            break;
+          case 'sensor_temp_below':
+            if (device.type === 'sensor-temp-humidity' && device.state.on) {
+              conditionMet = device.state.temperature < trigger.value;
+            }
+            break;
+          case 'humidity_above':
+            if (device.type === 'sensor-temp-humidity' && device.state.on) {
+              conditionMet = device.state.humidity > trigger.value;
+            }
+            break;
+          case 'humidity_below':
+            if (device.type === 'sensor-temp-humidity' && device.state.on) {
+              conditionMet = device.state.humidity < trigger.value;
+            }
+            break;
+          case 'motion_detected':
+            if (device.type === 'sensor-motion' && device.state.on) {
+              conditionMet = device.state.motionDetected === true;
+            }
+            break;
+          case 'motion_cleared':
+            if (device.type === 'sensor-motion' && device.state.on) {
+              conditionMet = device.state.motionDetected === false;
+            }
+            break;
+          case 'smoke_detected':
+            if (device.type === 'sensor-smoke' && device.state.on) {
+              conditionMet = device.state.smokeDetected === true;
+            }
+            break;
+          case 'smoke_cleared':
+            if (device.type === 'sensor-smoke' && device.state.on) {
+              conditionMet = device.state.smokeDetected === false;
+            }
+            break;
           case 'on':
             conditionMet = device.state.on === trigger.value;
             break;
@@ -1139,6 +1277,46 @@ function App() {
     const interval = setInterval(checkAutomationConditions, 10000);
     return () => clearInterval(interval);
   }, [checkAutomationConditions]);
+
+  useEffect(() => {
+    const simulateSensorData = () => {
+      setDevices(prev => prev.map(device => {
+        if (!device.state.on) return device;
+        
+        const newState = { ...device.state };
+        
+        if (device.type === 'sensor-temp-humidity') {
+          const tempChange = (Math.random() - 0.5) * 0.4;
+          const humidityChange = (Math.random() - 0.5) * 1;
+          newState.temperature = Math.max(15, Math.min(40, (device.state.temperature || 25) + tempChange));
+          newState.humidity = Math.max(20, Math.min(90, (device.state.humidity || 50) + humidityChange));
+        }
+        
+        if (device.type === 'sensor-motion') {
+          if (Math.random() < 0.05) {
+            newState.motionDetected = !device.state.motionDetected;
+          }
+        }
+        
+        if (device.type === 'sensor-smoke') {
+          if (Math.random() < 0.02) {
+            newState.smokeDetected = !device.state.smokeDetected;
+            newState.alarmActive = newState.smokeDetected;
+          }
+        }
+        
+        if (Object.keys(newState).some(key => newState[key] !== device.state[key])) {
+          updateDeviceState(device.id, newState).catch(err => console.error('Update sensor state failed:', err));
+          return { ...device, state: newState };
+        }
+        
+        return device;
+      }));
+    };
+
+    const sensorInterval = setInterval(simulateSensorData, 3000);
+    return () => clearInterval(sensorInterval);
+  }, []);
 
   if (loading) {
     return (

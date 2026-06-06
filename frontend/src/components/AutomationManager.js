@@ -8,7 +8,10 @@ const typeIcons = {
   speaker: '🔊',
   camera: '📷',
   fridge: '🧊',
-  curtain: '🪟'
+  curtain: '🪟',
+  'sensor-temp-humidity': '🌡️',
+  'sensor-motion': '👁️',
+  'sensor-smoke': '🚨'
 };
 
 const defaultStateByType = {
@@ -19,14 +22,25 @@ const defaultStateByType = {
   speaker: { on: false, volume: 40 },
   camera: { on: true, recording: false },
   fridge: { on: true, temperature: 4 },
-  curtain: { on: true, openPercent: 70 }
+  curtain: { on: true, openPercent: 70 },
+  'sensor-temp-humidity': { on: true },
+  'sensor-motion': { on: true },
+  'sensor-smoke': { on: true, alarmActive: false }
 };
 
 const triggerConditions = [
   { value: 'temperature_above', label: '温度高于', type: 'ac', unit: '°C' },
   { value: 'temperature_below', label: '温度低于', type: 'ac', unit: '°C' },
   { value: 'on', label: '设备开启', type: 'any' },
-  { value: 'off', label: '设备关闭', type: 'any' }
+  { value: 'off', label: '设备关闭', type: 'any' },
+  { value: 'sensor_temp_above', label: '温度高于', type: 'sensor-temp-humidity', unit: '°C' },
+  { value: 'sensor_temp_below', label: '温度低于', type: 'sensor-temp-humidity', unit: '°C' },
+  { value: 'humidity_above', label: '湿度高于', type: 'sensor-temp-humidity', unit: '%' },
+  { value: 'humidity_below', label: '湿度低于', type: 'sensor-temp-humidity', unit: '%' },
+  { value: 'motion_detected', label: '检测到人体', type: 'sensor-motion', unit: '' },
+  { value: 'motion_cleared', label: '人体离开', type: 'sensor-motion', unit: '' },
+  { value: 'smoke_detected', label: '检测到烟雾', type: 'sensor-smoke', unit: '' },
+  { value: 'smoke_cleared', label: '烟雾消除', type: 'sensor-smoke', unit: '' }
 ];
 
 const triggerTypes = [
@@ -221,6 +235,43 @@ function AutomationForm({ automation, devices, onSubmit, onCancel, isEdit }) {
                     <span>35°C</span>
                   </div>
                 </div>
+              </div>
+            )}
+            
+            {selectedCondition && selectedCondition.type === 'sensor-temp-humidity' && (
+              <div className="form-group">
+                <label>阈值 ({selectedCondition.unit})</label>
+                {selectedCondition.value.startsWith('sensor_temp') ? (
+                  <div className="slider-container">
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      value={triggerValue}
+                      onChange={(e) => setTriggerValue(parseInt(e.target.value))}
+                    />
+                    <div className="slider-value">
+                      <span>0°C</span>
+                      <span>{triggerValue}°C</span>
+                      <span>50°C</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="slider-container">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={triggerValue}
+                      onChange={(e) => setTriggerValue(parseInt(e.target.value))}
+                    />
+                    <div className="slider-value">
+                      <span>0%</span>
+                      <span>{triggerValue}%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -466,6 +517,22 @@ function AutomationList({ automations, devices, onEdit, onDelete, onToggle, acti
         return `${deviceLabel} 温度高于 ${trigger.value}°C`;
       case 'temperature_below':
         return `${deviceLabel} 温度低于 ${trigger.value}°C`;
+      case 'sensor_temp_above':
+        return `${deviceLabel} 温度高于 ${trigger.value}°C`;
+      case 'sensor_temp_below':
+        return `${deviceLabel} 温度低于 ${trigger.value}°C`;
+      case 'humidity_above':
+        return `${deviceLabel} 湿度高于 ${trigger.value}%`;
+      case 'humidity_below':
+        return `${deviceLabel} 湿度低于 ${trigger.value}%`;
+      case 'motion_detected':
+        return `${deviceLabel} 检测到人体`;
+      case 'motion_cleared':
+        return `${deviceLabel} 人体离开`;
+      case 'smoke_detected':
+        return `${deviceLabel} 检测到烟雾`;
+      case 'smoke_cleared':
+        return `${deviceLabel} 烟雾消除`;
       case 'on':
         return `${deviceLabel} 已开启`;
       case 'off':
@@ -603,7 +670,7 @@ function AutomationManager({ automations, devices, activeSceneId, scenes, onCrea
               activeSceneId={activeSceneId}
               scenes={scenes}
               onEdit={handleEdit}
-              onDelete={handleDeleteAutomation}
+              onDelete={onDeleteAutomation}
               onToggle={onToggleAutomation}
             />
             <button

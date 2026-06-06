@@ -244,6 +244,22 @@ const checkAutomationCondition = async (automation) => {
           return device.state.temperature > trigger.value;
         case 'temperature_below':
           return device.state.temperature < trigger.value;
+        case 'sensor_temp_above':
+          return device.state.temperature > trigger.value;
+        case 'sensor_temp_below':
+          return device.state.temperature < trigger.value;
+        case 'humidity_above':
+          return device.state.humidity > trigger.value;
+        case 'humidity_below':
+          return device.state.humidity < trigger.value;
+        case 'motion_detected':
+          return device.state.motionDetected === true;
+        case 'motion_cleared':
+          return device.state.motionDetected === false;
+        case 'smoke_detected':
+          return device.state.smokeDetected === true;
+        case 'smoke_cleared':
+          return device.state.smokeDetected === false;
         case 'on':
           return device.state.on === true;
         case 'off':
