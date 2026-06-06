@@ -22,7 +22,8 @@ function SceneContent({
   onDeviceSelect,
   onGroupSelect,
   transformMode,
-  setTransformMode
+  setTransformMode,
+  currentRoom
 }) {
   const transformRef = useRef();
   const meshRefs = useRef({});
@@ -102,7 +103,7 @@ function SceneContent({
       />
       <directionalLight position={[-5, 5, -5]} intensity={0.3} />
 
-      <Room />
+      <Room room={currentRoom} />
 
       <Grid 
         cellSize={1} 
@@ -163,7 +164,7 @@ function SceneContent({
   );
 }
 
-function Scene3D({ devices, selectedDevice, selectedGroup, onDeviceMove, onDeviceSelect, onGroupSelect }) {
+function Scene3D({ devices, selectedDevice, selectedGroup, onDeviceMove, onDeviceSelect, onGroupSelect, currentRoom }) {
   const [transformMode, setTransformMode] = useState('translate');
 
   return (
@@ -184,6 +185,7 @@ function Scene3D({ devices, selectedDevice, selectedGroup, onDeviceMove, onDevic
           onGroupSelect={onGroupSelect}
           transformMode={transformMode}
           setTransformMode={setTransformMode}
+          currentRoom={currentRoom}
         />
       </Canvas>
       

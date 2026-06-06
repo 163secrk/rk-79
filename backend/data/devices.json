@@ -4,6 +4,7 @@
       "id": "light-1",
       "type": "light",
       "name": "客厅主灯",
+      "roomId": "room-living",
       "ratedPower": 30,
       "position": {
         "x": 0,
@@ -16,18 +17,17 @@
         "z": 0
       },
       "state": {
-        "on": true,
-        "brightness": 42,
+        "on": false,
+        "brightness": 80,
         "color": "#ffffff",
-        "temperature": 29,
-        "volume": 90,
-        "mode": "heat"
+        "temperature": 3000
       }
     },
     {
       "id": "ac-1",
       "type": "ac",
       "name": "客厅空调",
+      "roomId": "room-living",
       "ratedPower": 1500,
       "position": {
         "x": -3.5,
@@ -40,21 +40,21 @@
         "z": 0
       },
       "state": {
-        "on": true,
-        "temperature": 29,
-        "mode": "heat",
-        "volume": 90
+        "on": false,
+        "temperature": 24,
+        "mode": "cool"
       }
     },
     {
       "id": "tv-1",
       "type": "tv",
       "name": "客厅电视",
+      "roomId": "room-living",
       "ratedPower": 100,
       "position": {
         "x": 0,
-        "y": -3.27,
-        "z": 4.86
+        "y": 1.2,
+        "z": -3.8
       },
       "rotation": {
         "x": 0,
@@ -62,48 +62,43 @@
         "z": 0
       },
       "state": {
-        "on": true,
-        "volume": 31,
-        "channel": 1,
-        "temperature": 19,
-        "mode": "heat",
-        "brightness": 30,
-        "color": "#268249"
+        "on": false,
+        "volume": 30,
+        "channel": 1
       }
     },
     {
       "id": "light-2",
       "type": "lamp",
       "name": "落地灯",
+      "roomId": "room-living",
       "ratedPower": 15,
       "position": {
-        "x": 2.54,
-        "y": -0.17,
-        "z": 0.9
+        "x": 2.5,
+        "y": 0,
+        "z": 1
       },
       "rotation": {
-        "x": -0.06,
-        "y": -0.73,
-        "z": 0.02
+        "x": 0,
+        "y": -0.7,
+        "z": 0
       },
       "state": {
-        "on": true,
-        "brightness": 30,
-        "color": "#268249",
-        "temperature": 19,
-        "volume": 31,
-        "mode": "heat"
+        "on": false,
+        "brightness": 60,
+        "color": "#ffd700"
       }
     },
     {
-      "id": "tv-1780667654343",
-      "type": "tv",
-      "name": "电视",
-      "ratedPower": 100,
+      "id": "light-3",
+      "type": "light",
+      "name": "卧室主灯",
+      "roomId": "room-bedroom",
+      "ratedPower": 25,
       "position": {
-        "x": -5.88,
-        "y": -3.51,
-        "z": -3.03
+        "x": 0,
+        "y": 2.8,
+        "z": 0
       },
       "rotation": {
         "x": 0,
@@ -111,47 +106,172 @@
         "z": 0
       },
       "state": {
-        "on": true,
-        "volume": 31,
-        "channel": 1,
-        "temperature": 19,
-        "mode": "heat",
-        "brightness": 30,
-        "color": "#268249"
+        "on": false,
+        "brightness": 50,
+        "color": "#ffe4b5",
+        "temperature": 2700
       }
     },
     {
-      "id": "ac-1780667704895",
+      "id": "ac-2",
       "type": "ac",
-      "name": "空调",
-      "ratedPower": 1500,
+      "name": "卧室空调",
+      "roomId": "room-bedroom",
+      "ratedPower": 1200,
       "position": {
-        "x": 2.46,
-        "y": 1.06,
-        "z": -3.97
+        "x": -3.5,
+        "y": 2,
+        "z": -3.5
       },
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": 0.785,
+        "z": 0
+      },
+      "state": {
+        "on": false,
+        "temperature": 26,
+        "mode": "cool"
+      }
+    },
+    {
+      "id": "lamp-1",
+      "type": "lamp",
+      "name": "床头灯",
+      "roomId": "room-bedroom",
+      "ratedPower": 8,
+      "position": {
+        "x": -2,
+        "y": 0.7,
+        "z": -1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.3,
         "z": 0
       },
       "state": {
         "on": true,
-        "temperature": 19,
-        "mode": "heat",
-        "volume": 31,
         "brightness": 30,
-        "color": "#268249"
+        "color": "#ffb6c1"
       }
     },
     {
-      "id": "camera-1780667724960",
+      "id": "light-4",
+      "type": "light",
+      "name": "厨房顶灯",
+      "roomId": "room-kitchen",
+      "ratedPower": 40,
+      "position": {
+        "x": 0,
+        "y": 2.8,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "state": {
+        "on": true,
+        "brightness": 100,
+        "color": "#ffffff",
+        "temperature": 5000
+      }
+    },
+    {
+      "id": "camera-1",
       "type": "camera",
-      "name": "摄像头",
+      "name": "厨房摄像头",
+      "roomId": "room-kitchen",
       "ratedPower": 10,
       "position": {
-        "x": -2.78,
-        "y": -1.43,
+        "x": -3.5,
+        "y": 2.5,
+        "z": -3.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.785,
+        "z": 0
+      },
+      "state": {
+        "on": true,
+        "recording": true
+      }
+    },
+    {
+      "id": "fridge-1",
+      "type": "fridge",
+      "name": "冰箱",
+      "roomId": "room-kitchen",
+      "ratedPower": 200,
+      "position": {
+        "x": -3,
+        "y": 0.9,
+        "z": -3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0
+      },
+      "state": {
+        "on": true,
+        "temperature": 4
+      }
+    },
+    {
+      "id": "curtain-1",
+      "type": "curtain",
+      "name": "客厅窗帘",
+      "roomId": "room-living",
+      "ratedPower": 50,
+      "position": {
+        "x": 3.5,
+        "y": 1.5,
+        "z": -2
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.57,
+        "z": 0
+      },
+      "state": {
+        "on": false,
+        "openPercent": 70
+      }
+    },
+    {
+      "id": "speaker-1",
+      "type": "speaker",
+      "name": "智能音箱",
+      "roomId": "room-living",
+      "ratedPower": 30,
+      "position": {
+        "x": -2.5,
+        "y": 0.5,
+        "z": -2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0
+      },
+      "state": {
+        "on": false,
+        "volume": 40
+      }
+    },
+    {
+      "id": "light-1780718462775",
+      "type": "light",
+      "name": "吸顶灯",
+      "roomId": "room-living",
+      "ratedPower": 30,
+      "position": {
+        "x": 0,
+        "y": 1.5,
         "z": 0
       },
       "rotation": {
@@ -160,46 +280,20 @@
         "z": 0
       },
       "state": {
-        "on": true,
-        "recording": false,
-        "temperature": 29,
-        "volume": 90,
-        "mode": "heat"
+        "on": false,
+        "brightness": 80,
+        "color": "#ffffff"
       }
     },
     {
-      "id": "tv-1780704882272",
-      "type": "tv",
-      "name": "电视",
-      "ratedPower": 100,
+      "id": "light-1780718471654",
+      "type": "light",
+      "name": "吸顶灯",
+      "roomId": "room-living",
+      "ratedPower": 30,
       "position": {
-        "x": -0.03,
-        "y": 1.51,
-        "z": -3.45
-      },
-      "rotation": {
         "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "state": {
-        "on": true,
-        "volume": 31,
-        "channel": 1,
-        "temperature": 19,
-        "mode": "heat",
-        "brightness": 30,
-        "color": "#268249"
-      }
-    },
-    {
-      "id": "camera-1780705020688",
-      "type": "camera",
-      "name": "摄像头",
-      "ratedPower": 10,
-      "position": {
-        "x": -4.07,
-        "y": -1.21,
+        "y": 1.5,
         "z": 0
       },
       "rotation": {
@@ -208,91 +302,21 @@
         "z": 0
       },
       "state": {
-        "on": true,
-        "recording": false,
-        "temperature": 29,
-        "volume": 90,
-        "mode": "heat"
+        "on": false,
+        "brightness": 80,
+        "color": "#ffffff"
       }
     },
     {
-      "id": "camera-1780705062992",
-      "type": "camera",
-      "name": "摄像头",
-      "ratedPower": 10,
-      "position": {
-        "x": 0,
-        "y": 4.24,
-        "z": -11.55
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "state": {
-        "on": true,
-        "recording": false,
-        "temperature": 29,
-        "volume": 90,
-        "mode": "heat"
-      }
-    },
-    {
-      "id": "camera-1780705094576",
-      "type": "camera",
-      "name": "摄像头",
-      "ratedPower": 10,
-      "position": {
-        "x": 2.09,
-        "y": 2.14,
-        "z": 1.65
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "state": {
-        "on": true,
-        "recording": true,
-        "temperature": 29,
-        "volume": 90,
-        "mode": "heat"
-      }
-    },
-    {
-      "id": "tv-1780707851631",
-      "type": "tv",
-      "name": "电视",
-      "ratedPower": 100,
-      "position": {
-        "x": -3.74,
-        "y": 1.47,
-        "z": -1.09
-      },
-      "rotation": {
-        "x": 0,
-        "y": 1.47,
-        "z": 0
-      },
-      "state": {
-        "on": true,
-        "volume": 10,
-        "channel": 397,
-        "temperature": 29,
-        "mode": "heat"
-      }
-    },
-    {
-      "id": "lamp-1780707936096",
+      "id": "lamp-1780718472945",
       "type": "lamp",
       "name": "台灯",
+      "roomId": "room-living",
       "ratedPower": 15,
       "position": {
-        "x": -1.24,
-        "y": 0.64,
-        "z": 1.71
+        "x": 0,
+        "y": 1.5,
+        "z": 0
       },
       "rotation": {
         "x": 0,
@@ -300,12 +324,75 @@
         "z": 0
       },
       "state": {
-        "on": true,
-        "brightness": 13,
-        "color": "#18cd45",
-        "temperature": 29,
-        "volume": 90,
-        "mode": "heat"
+        "on": false,
+        "brightness": 80,
+        "color": "#ffffff"
+      }
+    },
+    {
+      "id": "tv-1780718472950",
+      "type": "tv",
+      "name": "电视",
+      "roomId": "room-living",
+      "ratedPower": 100,
+      "position": {
+        "x": 0,
+        "y": 1.5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "state": {
+        "on": false,
+        "volume": 50,
+        "channel": 1
+      }
+    },
+    {
+      "id": "ac-1780718475046",
+      "type": "ac",
+      "name": "空调",
+      "roomId": "room-living",
+      "ratedPower": 1500,
+      "position": {
+        "x": 0,
+        "y": 1.5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "state": {
+        "on": false,
+        "temperature": 24,
+        "mode": "cool"
+      }
+    },
+    {
+      "id": "lamp-1780718476768",
+      "type": "lamp",
+      "name": "台灯",
+      "roomId": "room-living",
+      "ratedPower": 15,
+      "position": {
+        "x": 0,
+        "y": 1.5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "state": {
+        "on": false,
+        "brightness": 80,
+        "color": "#ffffff"
       }
     }
   ]

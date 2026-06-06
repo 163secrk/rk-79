@@ -1,18 +1,48 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getDevices, saveDevices, updateDeviceState, getSchedules, createSchedule, updateSchedule, deleteSchedule, getGroups, createGroup, updateGroup, deleteGroup, updateGroupState } from './services/api';
+import { getDevices, saveDevices, updateDeviceState, getSchedules, createSchedule, updateSchedule, deleteSchedule, getGroups, createGroup, updateGroup, deleteGroup, updateGroupState, getRooms, saveRooms, createRoom, updateRoom, deleteRoom } from './services/api';
 import Scene3D from './components/Scene3D';
 import ControlPanel from './components/ControlPanel';
 import DeviceLibrary from './components/DeviceLibrary';
 import EnergyDashboard from './components/EnergyDashboard';
 import GroupPanel from './components/GroupPanel';
 import GroupManager from './components/GroupManager';
+import RoomTabs from './components/RoomTabs';
+import RoomManager from './components/RoomManager';
 import './App.css';
+
+const defaultRooms = [
+  {
+    id: 'room-living',
+    name: '客厅',
+    roomType: 'living',
+    icon: '🛋️',
+    color: '#667eea',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'room-bedroom',
+    name: '卧室',
+    roomType: 'bedroom',
+    icon: '🛏️',
+    color: '#f093fb',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'room-kitchen',
+    name: '厨房',
+    roomType: 'kitchen',
+    icon: '🍳',
+    color: '#43e97b',
+    createdAt: new Date().toISOString()
+  }
+];
 
 const defaultDevices = [
   {
     id: 'light-1',
     type: 'light',
     name: '客厅主灯',
+    roomId: 'room-living',
     ratedPower: 30,
     position: { x: 0, y: 2.8, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
@@ -22,6 +52,7 @@ const defaultDevices = [
     id: 'ac-1',
     type: 'ac',
     name: '客厅空调',
+    roomId: 'room-living',
     ratedPower: 1500,
     position: { x: -3.5, y: 2, z: -3.5 },
     rotation: { x: 0, y: 0.785, z: 0 },
@@ -31,6 +62,7 @@ const defaultDevices = [
     id: 'tv-1',
     type: 'tv',
     name: '客厅电视',
+    roomId: 'room-living',
     ratedPower: 100,
     position: { x: 0, y: 1.2, z: -3.8 },
     rotation: { x: 0, y: 0, z: 0 },
@@ -40,10 +72,71 @@ const defaultDevices = [
     id: 'light-2',
     type: 'lamp',
     name: '落地灯',
+    roomId: 'room-living',
     ratedPower: 15,
     position: { x: 2.5, y: 0, z: 2 },
     rotation: { x: 0, y: -1.047, z: 0 },
     state: { on: true, brightness: 60, color: '#ffd700' }
+  },
+  {
+    id: 'light-3',
+    type: 'light',
+    name: '卧室主灯',
+    roomId: 'room-bedroom',
+    ratedPower: 30,
+    position: { x: 0, y: 2.8, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    state: { on: false, brightness: 70, color: '#ffe4b5' }
+  },
+  {
+    id: 'ac-2',
+    type: 'ac',
+    name: '卧室空调',
+    roomId: 'room-bedroom',
+    ratedPower: 1500,
+    position: { x: -3.5, y: 2, z: -3.5 },
+    rotation: { x: 0, y: 0.785, z: 0 },
+    state: { on: false, temperature: 26, mode: 'cool' }
+  },
+  {
+    id: 'lamp-1',
+    type: 'lamp',
+    name: '床头灯',
+    roomId: 'room-bedroom',
+    ratedPower: 15,
+    position: { x: -2, y: 0.6, z: -2 },
+    rotation: { x: 0, y: 0, z: 0 },
+    state: { on: true, brightness: 50, color: '#ffd700' }
+  },
+  {
+    id: 'speaker-1',
+    type: 'speaker',
+    name: '智能音箱',
+    roomId: 'room-bedroom',
+    ratedPower: 50,
+    position: { x: 2, y: 0.5, z: -2 },
+    rotation: { x: 0, y: 0, z: 0 },
+    state: { on: false, volume: 40 }
+  },
+  {
+    id: 'light-4',
+    type: 'light',
+    name: '厨房灯',
+    roomId: 'room-kitchen',
+    ratedPower: 30,
+    position: { x: 0, y: 2.8, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    state: { on: true, brightness: 100, color: '#ffffff' }
+  },
+  {
+    id: 'camera-1',
+    type: 'camera',
+    name: '厨房摄像头',
+    roomId: 'room-kitchen',
+    ratedPower: 10,
+    position: { x: -3, y: 2.5, z: -3 },
+    rotation: { x: 0, y: 0.785, z: 0 },
+    state: { on: true, recording: false }
   }
 ];
 
@@ -53,7 +146,9 @@ const deviceRatedPower = {
   ac: 1500,
   tv: 100,
   speaker: 50,
-  camera: 10
+  camera: 10,
+  fridge: 200,
+  curtain: 50
 };
 
 const defaultGroups = [
@@ -63,6 +158,7 @@ const defaultGroups = [
     icon: '💡',
     color: '#fbbf24',
     deviceIds: ['light-1', 'light-2'],
+    roomId: 'room-living',
     createdAt: new Date().toISOString()
   },
   {
@@ -70,12 +166,14 @@ const defaultGroups = [
     name: '所有空调',
     icon: '❄️',
     color: '#3b82f6',
-    deviceIds: ['ac-1'],
+    deviceIds: ['ac-1', 'ac-2'],
     createdAt: new Date().toISOString()
   }
 ];
 
 function App() {
+  const [rooms, setRooms] = useState([]);
+  const [currentRoomId, setCurrentRoomId] = useState(null);
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [groups, setGroups] = useState([]);
@@ -86,7 +184,9 @@ function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
   const [showGroupManager, setShowGroupManager] = useState(false);
+  const [showRoomManager, setShowRoomManager] = useState(false);
   const autoSaveTimerRef = useRef(null);
+  const roomsAutoSaveTimerRef = useRef(null);
   const lastSavedRef = useRef(null);
 
   const showMessage = useCallback((text, type = 'info') => {
@@ -115,21 +215,56 @@ function App() {
     }, 500);
   }, [performSave]);
 
+  const performRoomsSave = useCallback(async (roomsToSave) => {
+    try {
+      setIsSaving(true);
+      await saveRooms(roomsToSave);
+      lastSavedRef.current = Date.now();
+    } catch (err) {
+      console.error('Rooms auto save failed:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  const autoSaveRooms = useCallback((roomsToSave) => {
+    if (roomsAutoSaveTimerRef.current) {
+      clearTimeout(roomsAutoSaveTimerRef.current);
+    }
+    roomsAutoSaveTimerRef.current = setTimeout(() => {
+      performRoomsSave(roomsToSave);
+    }, 500);
+  }, [performRoomsSave]);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [devicesData, schedulesData, groupsData] = await Promise.all([
+      const [devicesData, schedulesData, groupsData, roomsData] = await Promise.all([
         getDevices(),
         getSchedules().catch(() => ({ schedules: [] })),
-        getGroups().catch(() => ({ groups: [] }))
+        getGroups().catch(() => ({ groups: [] })),
+        getRooms().catch(() => ({ rooms: [] }))
       ]);
-      setDevices(devicesData.devices || []);
-      setSchedules(schedulesData.schedules || []);
+      const loadedDevices = devicesData.devices || [];
+      const loadedRooms = roomsData.rooms || [];
       const loadedGroups = groupsData.groups || [];
+      
+      const finalRooms = loadedRooms.length > 0 ? loadedRooms : defaultRooms;
+      const finalDevices = loadedDevices.length > 0 ? loadedDevices : defaultDevices.map(d => ({
+        ...d,
+        roomId: d.roomId || finalRooms[0]?.id
+      }));
+      
+      setRooms(finalRooms);
+      setCurrentRoomId(finalRooms[0]?.id || null);
+      setDevices(finalDevices);
+      setSchedules(schedulesData.schedules || []);
       setGroups(loadedGroups.length > 0 ? loadedGroups : defaultGroups);
     } catch (err) {
       console.error('Failed to load data:', err);
       showMessage('加载数据失败，使用本地数据', 'warning');
+      setRooms(defaultRooms);
+      setCurrentRoomId(defaultRooms[0]?.id || null);
       setDevices(defaultDevices);
       setGroups(defaultGroups);
     } finally {
@@ -143,8 +278,15 @@ function App() {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
+      if (roomsAutoSaveTimerRef.current) {
+        clearTimeout(roomsAutoSaveTimerRef.current);
+      }
     };
   }, [loadData]);
+
+  const currentRoom = rooms.find(r => r.id === currentRoomId);
+  const currentRoomDevices = devices.filter(d => d.roomId === currentRoomId);
+  const currentRoomGroups = groups.filter(g => !g.roomId || g.roomId === currentRoomId);
 
   const handleDeviceMove = useCallback((id, position, rotation) => {
     setDevices(prev => {
@@ -193,6 +335,10 @@ function App() {
         return { on: false, volume: 60 };
       case 'camera':
         return { on: true, recording: false };
+      case 'fridge':
+        return { on: true, temperature: 4 };
+      case 'curtain':
+        return { on: true, openPercent: 70 };
       default:
         return { on: false };
     }
@@ -206,13 +352,16 @@ function App() {
       ac: '空调',
       tv: '电视',
       speaker: '音箱',
-      camera: '摄像头'
+      camera: '摄像头',
+      fridge: '冰箱',
+      curtain: '窗帘'
     };
     
     const newDevice = {
       id: newId,
       type: deviceType,
       name: typeNames[deviceType] || deviceType,
+      roomId: currentRoomId,
       ratedPower: deviceRatedPower[deviceType] || 0,
       position: { x: 0, y: 1.5, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
@@ -225,8 +374,113 @@ function App() {
       return newDevices;
     });
     setSelectedDevice(newDevice);
-    showMessage(`已添加 ${newDevice.name}`, 'success');
-  }, [autoSave, showMessage]);
+    showMessage(`已添加 ${newDevice.name} 到 ${currentRoom?.name || '当前房间'}`, 'success');
+  }, [autoSave, showMessage, currentRoomId, currentRoom]);
+
+  const handleRoomSelect = useCallback((roomId) => {
+    setCurrentRoomId(roomId);
+    setSelectedDevice(null);
+    setSelectedGroup(null);
+  }, []);
+
+  const handleCreateRoom = useCallback(async (roomData) => {
+    try {
+      const newRoom = {
+        ...roomData,
+        id: `room-${Date.now()}`,
+        createdAt: new Date().toISOString()
+      };
+      const result = await createRoom(newRoom);
+      const createdRoom = result.room || newRoom;
+      setRooms(prev => {
+        const newRooms = [...prev, createdRoom];
+        autoSaveRooms(newRooms);
+        return newRooms;
+      });
+      setCurrentRoomId(createdRoom.id);
+      showMessage(`房间 "${createdRoom.name}" 已创建`, 'success');
+      return createdRoom;
+    } catch (err) {
+      console.error('Failed to create room:', err);
+      const newRoom = {
+        ...roomData,
+        id: `room-${Date.now()}`,
+        createdAt: new Date().toISOString()
+      };
+      setRooms(prev => {
+        const newRooms = [...prev, newRoom];
+        autoSaveRooms(newRooms);
+        return newRooms;
+      });
+      setCurrentRoomId(newRoom.id);
+      showMessage(`房间 "${newRoom.name}" 已创建`, 'success');
+      return newRoom;
+    }
+  }, [showMessage, autoSaveRooms]);
+
+  const handleUpdateRoom = useCallback(async (id, data) => {
+    try {
+      const result = await updateRoom(id, data);
+      setRooms(prev => prev.map(r => r.id === id ? result.room || { ...r, ...data } : r));
+      showMessage('房间已更新', 'success');
+      return result.room || { ...data, id };
+    } catch (err) {
+      console.error('Failed to update room:', err);
+      setRooms(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
+      showMessage('房间已更新', 'success');
+      return { ...data, id };
+    }
+  }, [showMessage]);
+
+  const handleDeleteRoom = useCallback(async (id) => {
+    try {
+      await deleteRoom(id);
+      setRooms(prev => {
+        const newRooms = prev.filter(r => r.id !== id);
+        if (newRooms.length > 0) {
+          autoSaveRooms(newRooms);
+        }
+        return newRooms;
+      });
+      setDevices(prev => {
+        const newDevices = prev.filter(d => d.roomId !== id);
+        autoSave(newDevices);
+        return newDevices;
+      });
+      setGroups(prev => prev.map(g => ({
+        ...g,
+        deviceIds: g.deviceIds.filter(did => devices.find(d => d.id === did && d.roomId !== id))
+      })));
+      if (currentRoomId === id) {
+        const remainingRooms = rooms.filter(r => r.id !== id);
+        setCurrentRoomId(remainingRooms[0]?.id || null);
+      }
+      setSelectedDevice(null);
+      setSelectedGroup(null);
+      showMessage('房间已删除', 'info');
+    } catch (err) {
+      console.error('Failed to delete room:', err);
+      setRooms(prev => {
+        const newRooms = prev.filter(r => r.id !== id);
+        if (newRooms.length > 0) {
+          autoSaveRooms(newRooms);
+        }
+        return newRooms;
+      });
+      setDevices(prev => {
+        const newDevices = prev.filter(d => d.roomId !== id);
+        autoSave(newDevices);
+        return newDevices;
+      });
+      if (currentRoomId === id) {
+        const remainingRooms = rooms.filter(r => r.id !== id);
+        setCurrentRoomId(remainingRooms[0]?.id || null);
+      }
+      setSelectedDevice(null);
+      setSelectedGroup(null);
+      showMessage('房间已删除', 'info');
+    }
+  }, [currentRoomId, rooms, devices, showMessage, autoSaveRooms, autoSave]);
 
   const handleDeleteDevice = useCallback(async (id) => {
     setDevices(prev => {
@@ -280,14 +534,26 @@ function App() {
 
   const handleCreateGroup = useCallback(async (groupData) => {
     try {
-      const result = await createGroup(groupData);
-      setGroups(prev => [...prev, result.group]);
-      showMessage(`分组 "${result.group.name}" 已创建`, 'success');
-      return result.group;
+      const newGroup = {
+        ...groupData,
+        id: `group-${Date.now()}`,
+        createdAt: new Date().toISOString()
+      };
+      const result = await createGroup(newGroup);
+      const createdGroup = result.group || newGroup;
+      setGroups(prev => [...prev, createdGroup]);
+      showMessage(`分组 "${createdGroup.name}" 已创建`, 'success');
+      return createdGroup;
     } catch (err) {
       console.error('Failed to create group:', err);
-      showMessage('创建分组失败', 'error');
-      throw err;
+      const newGroup = {
+        ...groupData,
+        id: `group-${Date.now()}`,
+        createdAt: new Date().toISOString()
+      };
+      setGroups(prev => [...prev, newGroup]);
+      showMessage(`分组 "${newGroup.name}" 已创建`, 'success');
+      return newGroup;
     }
   }, [showMessage]);
 
@@ -404,6 +670,9 @@ function App() {
           <span className={`save-status ${isSaving ? 'saving' : 'saved'}`}>
             {isSaving ? '💾 保存中...' : '✓ 自动保存已开启'}
           </span>
+          <button className="btn btn-secondary" onClick={() => setShowRoomManager(true)}>
+            🏠 房间管理
+          </button>
           <button className="btn btn-secondary" onClick={() => setShowGroupManager(true)}>
             👥 分组管理
           </button>
@@ -419,27 +688,37 @@ function App() {
         </div>
       </div>
 
+      <RoomTabs
+        rooms={rooms}
+        currentRoomId={currentRoomId}
+        onRoomSelect={handleRoomSelect}
+        onManageRooms={() => setShowRoomManager(true)}
+        devices={devices}
+      />
+
       <div className="main-content">
         <DeviceLibrary
           onAddDevice={handleAddDevice}
-          groups={groups}
+          groups={currentRoomGroups}
           selectedGroup={selectedGroup}
           onGroupSelect={handleGroupSelect}
           onManageGroups={() => setShowGroupManager(true)}
+          currentRoom={currentRoom}
         />
         
         <div className="scene-container" onClick={handleSceneClick}>
           <Scene3D
-            devices={devices}
+            devices={currentRoomDevices}
             selectedDevice={selectedDevice}
             selectedGroup={selectedGroup}
             onDeviceMove={handleDeviceMove}
             onDeviceSelect={handleDeviceSelect}
             onGroupSelect={handleGroupSelect}
+            currentRoom={currentRoom}
           />
           {showDashboard && (
             <div className="dashboard-overlay">
-              <EnergyDashboard devices={devices} />
+              <EnergyDashboard devices={currentRoomDevices} />
             </div>
           )}
         </div>
@@ -463,9 +742,25 @@ function App() {
             onAddSchedule={handleAddSchedule}
             onUpdateSchedule={handleUpdateSchedule}
             onDeleteSchedule={handleDeleteSchedule}
+            rooms={rooms}
           />
         )}
       </div>
+
+      {showRoomManager && (
+        <div className="modal-overlay" onClick={() => setShowRoomManager(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <RoomManager
+              rooms={rooms}
+              devices={devices}
+              onCreateRoom={handleCreateRoom}
+              onUpdateRoom={handleUpdateRoom}
+              onDeleteRoom={handleDeleteRoom}
+              onClose={() => setShowRoomManager(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {showGroupManager && (
         <div className="modal-overlay" onClick={() => setShowGroupManager(false)}>
@@ -477,6 +772,7 @@ function App() {
               onUpdateGroup={handleUpdateGroup}
               onDeleteGroup={handleDeleteGroup}
               onClose={() => setShowGroupManager(false)}
+              currentRoomId={currentRoomId}
             />
           </div>
         </div>

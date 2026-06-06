@@ -7,9 +7,11 @@ const deviceTypes = [
   { type: 'tv', name: '电视', icon: '📺' },
   { type: 'speaker', name: '音箱', icon: '🔊' },
   { type: 'camera', name: '摄像头', icon: '📷' },
+  { type: 'fridge', name: '冰箱', icon: '🧊' },
+  { type: 'curtain', name: '窗帘', icon: '🪟' },
 ];
 
-function DeviceLibrary({ onAddDevice, groups, selectedGroup, onGroupSelect, onManageGroups }) {
+function DeviceLibrary({ onAddDevice, groups, selectedGroup, onGroupSelect, onManageGroups, currentRoom }) {
   const [activeTab, setActiveTab] = useState('devices');
 
   const getGroupDeviceCount = (group, devices) => {
@@ -18,6 +20,16 @@ function DeviceLibrary({ onAddDevice, groups, selectedGroup, onGroupSelect, onMa
 
   return (
     <div className="device-library">
+      {currentRoom && (
+        <div className="current-room-info" style={{ borderLeftColor: currentRoom.color }}>
+          <span className="room-info-icon">{currentRoom.icon}</span>
+          <div className="room-info-text">
+            <span className="room-info-name">{currentRoom.name}</span>
+            <span className="room-info-type">当前房间</span>
+          </div>
+        </div>
+      )}
+
       <div className="library-tabs">
         <button
           className={`library-tab ${activeTab === 'devices' ? 'active' : ''}`}
@@ -35,7 +47,7 @@ function DeviceLibrary({ onAddDevice, groups, selectedGroup, onGroupSelect, onMa
 
       {activeTab === 'devices' && (
         <>
-          <h3>添加设备</h3>
+          <h3>添加设备到 {currentRoom?.name || '房间'}</h3>
           {deviceTypes.map((item) => (
             <div
               key={item.type}

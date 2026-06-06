@@ -9,6 +9,7 @@ const PORT = 8079;
 const DATA_FILE = path.join(__dirname, 'data', 'devices.json');
 const SCHEDULE_FILE = path.join(__dirname, 'data', 'schedules.json');
 const GROUP_FILE = path.join(__dirname, 'data', 'groups.json');
+const ROOM_FILE = path.join(__dirname, 'data', 'rooms.json');
 
 const activeJobs = new Map();
 
@@ -33,6 +34,13 @@ const ensureGroupFile = async () => {
   const exists = await fs.pathExists(GROUP_FILE);
   if (!exists) {
     await fs.outputJson(GROUP_FILE, { groups: [] });
+  }
+};
+
+const ensureRoomFile = async () => {
+  const exists = await fs.pathExists(ROOM_FILE);
+  if (!exists) {
+    await fs.outputJson(ROOM_FILE, { rooms: [] });
   }
 };
 
@@ -322,6 +330,7 @@ app.post('/api/groups', async (req, res) => {
       icon: group.icon || '📦',
       color: group.color || '#667eea',
       deviceIds: group.deviceIds,
+      roomId: group.roomId,
       createdAt: new Date().toISOString()
     };
 
@@ -406,6 +415,89 @@ app.put('/api/groups/:id/state', async (req, res) => {
   }
 });
 
+app.get('/api/rooms', async (req, res) => {
+  try {
+    const data = await fs.readJson(ROOM_FILE);
+    res.json(data);
+  } catch (err) {
+    console.error('Error reading rooms:', err);
+    res.status(500).json({ error: 'Failed to read rooms' });
+  }
+});
+
+app.post('/api/rooms', async (req, res) => {
+  try {
+    const { rooms, room } = req.body;
+    if (rooms) {
+      if (!Array.isArray(rooms)) {
+        return res.status(400).json({ error: 'Invalid data format' });
+      }
+      await fs.writeJson(ROOM_FILE, { rooms }, { spaces: 2 });
+      return res.json({ success: true, message: 'Rooms saved successfully' });
+    }
+    if (room) {
+      if (!room || !room.name) {
+        return res.status(400).json({ error: 'Invalid room data' });
+      }
+      const data = await fs.readJson(ROOM_FILE);
+      const newRoom = {
+        id: `room-${Date.now()}`,
+        name: room.name,
+        roomType: room.roomType || 'other',
+        icon: room.icon || '🏠',
+        color: room.color || '#667eea',
+        createdAt: new Date().toISOString()
+      };
+      data.rooms.push(newRoom);
+      await fs.writeJson(ROOM_FILE, data, { spaces: 2 });
+      return res.json({ success: true, room: newRoom });
+    }
+    return res.status(400).json({ error: 'Invalid request' });
+  } catch (err) {
+    console.error('Error saving rooms:', err);
+    res.status(500).json({ error: 'Failed to save rooms' });
+  }
+});
+
+app.put('/api/rooms/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const data = await fs.readJson(ROOM_FILE);
+    const roomIndex = data.rooms.findIndex(r => r.id === id);
+    
+    if (roomIndex === -1) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    
+    data.rooms[roomIndex] = { ...data.rooms[roomIndex], ...updateData };
+    await fs.writeJson(ROOM_FILE, data, { spaces: 2 });
+    res.json({ success: true, room: data.rooms[roomIndex] });
+  } catch (err) {
+    console.error('Error updating room:', err);
+    res.status(500).json({ error: 'Failed to update room' });
+  }
+});
+
+app.delete('/api/rooms/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await fs.readJson(ROOM_FILE);
+    const initialLength = data.rooms.length;
+    data.rooms = data.rooms.filter(r => r.id !== id);
+    
+    if (data.rooms.length === initialLength) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    
+    await fs.writeJson(ROOM_FILE, data, { spaces: 2 });
+    res.json({ success: true, message: 'Room deleted' });
+  } catch (err) {
+    console.error('Error deleting room:', err);
+    res.status(500).json({ error: 'Failed to delete room' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', port: PORT, activeSchedules: activeJobs.size });
 });
@@ -414,6 +506,7 @@ const start = async () => {
   await ensureDataFile();
   await ensureScheduleFile();
   await ensureGroupFile();
+  await ensureRoomFile();
   await loadSchedules();
   app.listen(PORT, () => {
     console.log(`Smart Home Backend running on http://localhost:${PORT}`);

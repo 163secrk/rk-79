@@ -6,7 +6,9 @@ const typeNames = {
   ac: '空调',
   tv: '电视',
   speaker: '音箱',
-  camera: '摄像头'
+  camera: '摄像头',
+  fridge: '冰箱',
+  curtain: '窗帘'
 };
 
 const typeIcons = {
@@ -15,7 +17,9 @@ const typeIcons = {
   ac: '❄️',
   tv: '📺',
   speaker: '🔊',
-  camera: '📷'
+  camera: '📷',
+  fridge: '🧊',
+  curtain: '🪟'
 };
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -218,6 +222,50 @@ function CameraControls({ state, onStateChange }) {
   );
 }
 
+function FridgeControls({ state, onStateChange }) {
+  return (
+    <>
+      <Switch 
+        label="电源" 
+        checked={state.on} 
+        onChange={() => onStateChange({ on: !state.on })} 
+      />
+      {state.on && (
+        <Slider
+          label="温度"
+          value={state.temperature || 4}
+          onChange={(val) => onStateChange({ temperature: val })}
+          min={-5}
+          max={15}
+          unit="°C"
+        />
+      )}
+    </>
+  );
+}
+
+function CurtainControls({ state, onStateChange }) {
+  return (
+    <>
+      <Switch 
+        label="电源" 
+        checked={state.on} 
+        onChange={() => onStateChange({ on: !state.on })} 
+      />
+      {state.on && (
+        <Slider
+          label="开合度"
+          value={state.openPercent !== undefined ? state.openPercent : 50}
+          onChange={(val) => onStateChange({ openPercent: val })}
+          min={0}
+          max={100}
+          unit="%"
+        />
+      )}
+    </>
+  );
+}
+
 function renderControls(type, state, onStateChange) {
   switch (type) {
     case 'light':
@@ -231,6 +279,10 @@ function renderControls(type, state, onStateChange) {
       return <SpeakerControls state={state} onStateChange={onStateChange} />;
     case 'camera':
       return <CameraControls state={state} onStateChange={onStateChange} />;
+    case 'fridge':
+      return <FridgeControls state={state} onStateChange={onStateChange} />;
+    case 'curtain':
+      return <CurtainControls state={state} onStateChange={onStateChange} />;
     default:
       return <Switch label="电源" checked={state.on} onChange={() => onStateChange({ on: !state.on })} />;
   }
@@ -254,6 +306,12 @@ function getStatePreview(targetState) {
     const modeNames = { cool: '制冷', heat: '制热', auto: '自动', dry: '除湿' };
     parts.push(modeNames[targetState.mode] || targetState.mode);
   }
+  if (targetState.openPercent !== undefined) {
+    parts.push(`开合度${targetState.openPercent}%`);
+  }
+  if (targetState.recording !== undefined) {
+    parts.push(targetState.recording ? '录像中' : '未录像');
+  }
   return parts.join(' · ');
 }
 
@@ -271,6 +329,7 @@ function ScheduleForm({ device, onSubmit, onCancel, editSchedule }) {
   const [targetOn, setTargetOn] = useState(editSchedule?.targetState?.on !== undefined ? editSchedule.targetState.on : true);
   const [brightness, setBrightness] = useState(editSchedule?.targetState?.brightness || 80);
   const [temperature, setTemperature] = useState(editSchedule?.targetState?.temperature || 24);
+  const [openPercent, setOpenPercent] = useState(editSchedule?.targetState?.openPercent !== undefined ? editSchedule.targetState.openPercent : 50);
 
   const toggleDay = (day) => {
     setDays(prev => 
@@ -286,8 +345,11 @@ function ScheduleForm({ device, onSubmit, onCancel, editSchedule }) {
     if (device.type === 'light' || device.type === 'lamp') {
       if (targetOn) targetState.brightness = brightness;
     }
-    if (device.type === 'ac') {
+    if (device.type === 'ac' || device.type === 'fridge') {
       if (targetOn) targetState.temperature = temperature;
+    }
+    if (device.type === 'curtain') {
+      if (targetOn) targetState.openPercent = openPercent;
     }
     onSubmit({
       name,
@@ -299,7 +361,8 @@ function ScheduleForm({ device, onSubmit, onCancel, editSchedule }) {
   };
 
   const showBrightness = (device.type === 'light' || device.type === 'lamp') && targetOn;
-  const showTemperature = device.type === 'ac' && targetOn;
+  const showTemperature = (device.type === 'ac' || device.type === 'fridge') && targetOn;
+  const showOpenPercent = device.type === 'curtain' && targetOn;
 
   return (
     <form className="schedule-form" onSubmit={handleSubmit}>
@@ -367,9 +430,20 @@ function ScheduleForm({ device, onSubmit, onCancel, editSchedule }) {
             label="目标温度" 
             value={temperature} 
             onChange={setTemperature}
-            min={16} 
-            max={30} 
+            min={device.type === 'fridge' ? -5 : 16} 
+            max={device.type === 'fridge' ? 15 : 30} 
             unit="°C" 
+          />
+        )}
+
+        {showOpenPercent && (
+          <Slider 
+            label="目标开合度" 
+            value={openPercent} 
+            onChange={setOpenPercent}
+            min={0} 
+            max={100} 
+            unit="%" 
           />
         )}
 
@@ -450,7 +524,8 @@ function ControlPanel({
   schedules,
   onAddSchedule,
   onUpdateSchedule,
-  onDeleteSchedule
+  onDeleteSchedule,
+  rooms
 }) {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
@@ -511,6 +586,14 @@ function ControlPanel({
           <span>类型</span>
           <span>{typeNames[device.type] || device.type}</span>
         </p>
+        {rooms && device.roomId && (
+          <p>
+            <span>房间</span>
+            <span>
+              {rooms.find(r => r.id === device.roomId)?.icon} {rooms.find(r => r.id === device.roomId)?.name || '未知房间'}
+            </span>
+          </p>
+        )}
         <p>
           <span>ID</span>
           <span style={{ fontSize: '0.7rem' }}>{device.id}</span>

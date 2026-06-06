@@ -311,6 +311,132 @@ const Speaker = ({ state, isSelected, isHovered, isInGroup, highlightColor, show
   );
 };
 
+const Fridge = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
+  const isOn = state.on;
+
+  return (
+    <group>
+      <mesh position={[0, 0.9, 0]} castShadow>
+        <boxGeometry args={[0.8, 1.8, 0.7]} />
+        <meshStandardMaterial 
+          color="#e8e8e8" 
+          metalness={0.3}
+          roughness={0.4}
+        />
+      </mesh>
+      
+      <mesh position={[0, 1.4, 0.36]} castShadow>
+        <boxGeometry args={[0.7, 0.9, 0.05]} />
+        <meshStandardMaterial 
+          color="#d0d0d0" 
+          metalness={0.4}
+          roughness={0.3}
+        />
+      </mesh>
+      
+      <mesh position={[0, 0.5, 0.36]} castShadow>
+        <boxGeometry args={[0.7, 0.85, 0.05]} />
+        <meshStandardMaterial 
+          color="#d0d0d0" 
+          metalness={0.4}
+          roughness={0.3}
+        />
+      </mesh>
+      
+      <mesh position={[0.25, 1.4, 0.39]} castShadow>
+        <boxGeometry args={[0.08, 0.3, 0.03]} />
+        <meshStandardMaterial color="#888888" />
+      </mesh>
+      
+      <mesh position={[0.25, 0.5, 0.39]} castShadow>
+        <boxGeometry args={[0.08, 0.3, 0.03]} />
+        <meshStandardMaterial color="#888888" />
+      </mesh>
+      
+      <mesh position={[-0.25, 1.6, 0.39]}>
+        <boxGeometry args={[0.15, 0.08, 0.02]} />
+        <meshStandardMaterial 
+          color={isOn ? '#43e97b' : '#888888'}
+          emissive={isOn ? '#43e97b' : '#000000'}
+          emissiveIntensity={isOn ? 0.5 : 0}
+        />
+      </mesh>
+      
+      {showHighlight && (
+        <mesh position={[0, 0.9, 0]}>
+          <boxGeometry args={[0.9, 1.9, 0.8]} />
+          <meshBasicMaterial 
+            color={highlightColor} 
+            transparent 
+            opacity={isInGroup && !isSelected && !isHovered ? 0.15 : 0.2}
+            wireframe
+          />
+        </mesh>
+      )}
+    </group>
+  );
+};
+
+const Curtain = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
+  const isOn = state.on;
+  const openPercent = state.openPercent !== undefined ? state.openPercent : 50;
+  const curtainWidth = 0.6 * (1 - openPercent / 100);
+
+  return (
+    <group>
+      <mesh position={[0, 1.8, 0]} castShadow>
+        <boxGeometry args={[1.5, 0.1, 0.1]} />
+        <meshStandardMaterial color="#8B4513" />
+      </mesh>
+      
+      <mesh position={[-0.375 + curtainWidth/2, 0.9, 0]} castShadow>
+        <boxGeometry args={[curtainWidth, 1.8, 0.05]} />
+        <meshStandardMaterial 
+          color="#DEB887" 
+          transparent
+          opacity={0.9}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      
+      <mesh position={[0.375 - curtainWidth/2, 0.9, 0]} castShadow>
+        <boxGeometry args={[curtainWidth, 1.8, 0.05]} />
+        <meshStandardMaterial 
+          color="#DEB887" 
+          transparent
+          opacity={0.9}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      
+      {isOn && (
+        <mesh position={[0, 0.9, -0.05]}>
+          <boxGeometry args={[1.4, 1.7, 0.02]} />
+          <meshStandardMaterial 
+            color="#87CEEB" 
+            emissive="#87CEEB"
+            emissiveIntensity={0.2}
+            transparent
+            opacity={0.6}
+          />
+        </mesh>
+      )}
+      
+      {showHighlight && (
+        <mesh position={[0, 0.9, 0]}>
+          <boxGeometry args={[1.6, 2, 0.2]} />
+          <meshBasicMaterial 
+            color={highlightColor} 
+            transparent 
+            opacity={isInGroup && !isSelected && !isHovered ? 0.15 : 0.2}
+            wireframe
+          />
+        </mesh>
+      )}
+    </group>
+  );
+};
+
 const Camera = ({ state, isSelected, isHovered, isInGroup, highlightColor, showHighlight }) => {
   const isOn = state.on;
   const recording = state.recording || false;
@@ -386,6 +512,10 @@ const DeviceModel = forwardRef(({ device, onClick, onPointerOver, onPointerOut, 
         return <Speaker state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       case 'camera':
         return <Camera state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
+      case 'fridge':
+        return <Fridge state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
+      case 'curtain':
+        return <Curtain state={state} isSelected={isSelected} isHovered={isHovered} isInGroup={isInGroup} highlightColor={highlightColor} showHighlight={showHighlight} />;
       default:
         return (
           <mesh castShadow>

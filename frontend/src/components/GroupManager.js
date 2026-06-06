@@ -197,12 +197,20 @@ function GroupList({ groups, devices, onEdit, onDelete, onSelect }) {
   );
 }
 
-function GroupManager({ groups, devices, onCreateGroup, onUpdateGroup, onDeleteGroup, onClose }) {
+function GroupManager({ groups, devices, onCreateGroup, onUpdateGroup, onDeleteGroup, onClose, currentRoomId }) {
   const [mode, setMode] = useState('list');
   const [editingGroup, setEditingGroup] = useState(null);
 
+  const roomDevices = currentRoomId 
+    ? devices.filter(d => d.roomId === currentRoomId)
+    : devices;
+
+  const roomGroups = currentRoomId
+    ? groups.filter(g => !g.roomId || g.roomId === currentRoomId)
+    : groups;
+
   const handleCreate = (data) => {
-    onCreateGroup(data);
+    onCreateGroup({ ...data, roomId: currentRoomId });
     setMode('list');
   };
 
@@ -233,7 +241,7 @@ function GroupManager({ groups, devices, onCreateGroup, onUpdateGroup, onDeleteG
         {mode === 'list' && (
           <>
             <GroupList
-              groups={groups}
+              groups={roomGroups}
               devices={devices}
               onEdit={handleEdit}
               onDelete={onDeleteGroup}
@@ -253,7 +261,7 @@ function GroupManager({ groups, devices, onCreateGroup, onUpdateGroup, onDeleteG
         {mode === 'form' && (
           <GroupForm
             group={editingGroup}
-            devices={devices}
+            devices={roomDevices}
             onSubmit={editingGroup ? handleUpdate : handleCreate}
             onCancel={handleCancel}
             isEdit={!!editingGroup}

@@ -1,0 +1,28 @@
+{
+  "rooms": [
+    {
+      "id": "room-living",
+      "name": "客厅",
+      "roomType": "living",
+      "icon": "🛋️",
+      "color": "#667eea",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "room-bedroom",
+      "name": "卧室",
+      "roomType": "bedroom",
+      "icon": "🛏️",
+      "color": "#f093fb",
+      "createdAt": "2024-01-01T00:00:01.000Z"
+    },
+    {
+      "id": "room-kitchen",
+      "name": "厨房",
+      "roomType": "kitchen",
+      "icon": "🍳",
+      "color": "#43e97b",
+      "createdAt": "2024-01-01T00:00:02.000Z"
+    }
+  ]
+}
