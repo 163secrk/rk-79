@@ -112,4 +112,54 @@ export const deleteRoom = async (id) => {
   return response.data;
 };
 
+export const getScenes = async () => {
+  const response = await api.get('/scenes');
+  return response.data;
+};
+
+export const createScene = async (scene) => {
+  const response = await api.post('/scenes', { scene });
+  return response.data;
+};
+
+export const updateScene = async (id, data) => {
+  const response = await api.put(`/scenes/${id}`, data);
+  return response.data;
+};
+
+export const deleteScene = async (id) => {
+  const response = await api.delete(`/scenes/${id}`);
+  return response.data;
+};
+
+export const activateScene = async (id) => {
+  const response = await api.post(`/scenes/${id}/activate`);
+  return response.data;
+};
+
+export const getAutomations = async () => {
+  const response = await api.get('/automations');
+  return response.data;
+};
+
+export const createAutomation = async (automation) => {
+  const response = await api.post('/automations', { automation });
+  return response.data;
+};
+
+export const updateAutomation = async (id, data) => {
+  const response = await api.put(`/automations/${id}`, data);
+  return response.data;
+};
+
+export const deleteAutomation = async (id) => {
+  const response = await api.delete(`/automations/${id}`);
+  return response.data;
+};
+
+export const toggleAutomation = async (id, enabled) => {
+  const response = await api.put(`/automations/${id}/toggle`, { enabled });
+  return response.data;
+};
+
 export default api;

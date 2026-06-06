@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getDevices, saveDevices, updateDeviceState, getSchedules, createSchedule, updateSchedule, deleteSchedule, getGroups, createGroup, updateGroup, deleteGroup, updateGroupState, getRooms, saveRooms, createRoom, updateRoom, deleteRoom } from './services/api';
+import { getDevices, saveDevices, updateDeviceState, getSchedules, createSchedule, updateSchedule, deleteSchedule, getGroups, createGroup, updateGroup, deleteGroup, updateGroupState, getRooms, saveRooms, createRoom, updateRoom, deleteRoom, getScenes, createScene, updateScene, deleteScene, activateScene, getAutomations, createAutomation, updateAutomation, deleteAutomation, toggleAutomation } from './services/api';
 import Scene3D from './components/Scene3D';
 import ControlPanel from './components/ControlPanel';
 import DeviceLibrary from './components/DeviceLibrary';
@@ -8,6 +8,9 @@ import GroupPanel from './components/GroupPanel';
 import GroupManager from './components/GroupManager';
 import RoomTabs from './components/RoomTabs';
 import RoomManager from './components/RoomManager';
+import SceneManager from './components/SceneManager';
+import AutomationManager from './components/AutomationManager';
+import SceneQuickPanel from './components/SceneQuickPanel';
 import './App.css';
 
 const defaultRooms = [
@@ -171,6 +174,152 @@ const defaultGroups = [
   }
 ];
 
+const defaultScenes = [
+  {
+    id: 'scene-sleep',
+    name: '睡眠模式',
+    icon: '🌙',
+    color: '#6366f1',
+    description: '关闭所有灯光，空调调至睡眠温度',
+    deviceStates: [
+      { deviceId: 'light-1', state: { on: false } },
+      { deviceId: 'light-2', state: { on: false } },
+      { deviceId: 'light-3', state: { on: false } },
+      { deviceId: 'light-4', state: { on: false } },
+      { deviceId: 'lamp-1', state: { on: true, brightness: 30 } },
+      { deviceId: 'tv-1', state: { on: false } },
+      { deviceId: 'speaker-1', state: { on: false } },
+      { deviceId: 'ac-1', state: { on: true, temperature: 27, mode: 'cool' } },
+      { deviceId: 'ac-2', state: { on: true, temperature: 26, mode: 'cool' } }
+    ],
+    isPreset: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'scene-away',
+    name: '离家模式',
+    icon: '🚪',
+    color: '#f59e0b',
+    description: '关闭所有设备，确保安全',
+    deviceStates: [
+      { deviceId: 'light-1', state: { on: false } },
+      { deviceId: 'light-2', state: { on: false } },
+      { deviceId: 'light-3', state: { on: false } },
+      { deviceId: 'light-4', state: { on: false } },
+      { deviceId: 'lamp-1', state: { on: false } },
+      { deviceId: 'tv-1', state: { on: false } },
+      { deviceId: 'speaker-1', state: { on: false } },
+      { deviceId: 'ac-1', state: { on: false } },
+      { deviceId: 'ac-2', state: { on: false } },
+      { deviceId: 'camera-1', state: { on: true, recording: true } }
+    ],
+    isPreset: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'scene-movie',
+    name: '影院模式',
+    icon: '🎬',
+    color: '#ec4899',
+    description: '调暗灯光，开启电视，营造观影氛围',
+    deviceStates: [
+      { deviceId: 'light-1', state: { on: true, brightness: 20, color: '#ff9900' } },
+      { deviceId: 'light-2', state: { on: true, brightness: 15, color: '#ff6600' } },
+      { deviceId: 'tv-1', state: { on: true, volume: 30 } },
+      { deviceId: 'ac-1', state: { on: true, temperature: 25, mode: 'cool' } }
+    ],
+    isPreset: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'scene-morning',
+    name: '晨起模式',
+    icon: '☀️',
+    color: '#10b981',
+    description: '逐渐开启灯光，打开窗帘，准备迎接新的一天',
+    deviceStates: [
+      { deviceId: 'light-3', state: { on: true, brightness: 60, color: '#fffacd' } },
+      { deviceId: 'lamp-1', state: { on: false } },
+      { deviceId: 'ac-2', state: { on: false } },
+      { deviceId: 'speaker-1', state: { on: true, volume: 25 } }
+    ],
+    isPreset: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'scene-home',
+    name: '回家模式',
+    icon: '🏠',
+    color: '#8b5cf6',
+    description: '开启客厅灯光和空调，迎接主人回家',
+    deviceStates: [
+      { deviceId: 'light-1', state: { on: true, brightness: 80 } },
+      { deviceId: 'light-2', state: { on: true, brightness: 60 } },
+      { deviceId: 'light-4', state: { on: true, brightness: 100 } },
+      { deviceId: 'ac-1', state: { on: true, temperature: 24, mode: 'cool' } },
+      { deviceId: 'camera-1', state: { on: true, recording: false } }
+    ],
+    isPreset: true,
+    createdAt: new Date().toISOString()
+  }
+];
+
+const defaultAutomations = [
+  {
+    id: 'auto-temp-ac',
+    name: '高温自动开空调',
+    description: '当温度高于28度时自动开启空调',
+    enabled: true,
+    trigger: {
+      type: 'device_state',
+      deviceId: 'sensor-temp',
+      condition: 'temperature_above',
+      value: 28
+    },
+    actions: [
+      { deviceId: 'ac-1', state: { on: true, temperature: 24, mode: 'cool' } },
+      { deviceId: 'ac-2', state: { on: true, temperature: 25, mode: 'cool' } }
+    ],
+    isPreset: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'auto-light-motion',
+    name: '夜间感应开灯',
+    description: '检测到移动时自动开启灯光',
+    enabled: false,
+    trigger: {
+      type: 'device_state',
+      deviceId: 'sensor-motion',
+      condition: 'motion_detected',
+      value: true
+    },
+    actions: [
+      { deviceId: 'light-3', state: { on: true, brightness: 50 } }
+    ],
+    isPreset: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'auto-energy-save',
+    name: '节能模式',
+    description: '当所有设备开启超过2小时且无人时自动关闭',
+    enabled: false,
+    trigger: {
+      type: 'time_duration',
+      condition: 'all_on_duration',
+      value: 120
+    },
+    actions: [
+      { deviceId: 'tv-1', state: { on: false } },
+      { deviceId: 'light-1', state: { on: false } },
+      { deviceId: 'ac-1', state: { on: false } }
+    ],
+    isPreset: true,
+    createdAt: new Date().toISOString()
+  }
+];
+
 function App() {
   const [rooms, setRooms] = useState([]);
   const [currentRoomId, setCurrentRoomId] = useState(null);
@@ -185,9 +334,15 @@ function App() {
   const [showDashboard, setShowDashboard] = useState(true);
   const [showGroupManager, setShowGroupManager] = useState(false);
   const [showRoomManager, setShowRoomManager] = useState(false);
+  const [scenes, setScenes] = useState([]);
+  const [automations, setAutomations] = useState([]);
+  const [showSceneManager, setShowSceneManager] = useState(false);
+  const [showAutomationManager, setShowAutomationManager] = useState(false);
+  const [activeSceneId, setActiveSceneId] = useState(null);
   const autoSaveTimerRef = useRef(null);
   const roomsAutoSaveTimerRef = useRef(null);
   const lastSavedRef = useRef(null);
+  const automationLastTriggerRef = useRef({});
 
   const showMessage = useCallback((text, type = 'info') => {
     setMessage({ text, type });
@@ -239,15 +394,19 @@ function App() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [devicesData, schedulesData, groupsData, roomsData] = await Promise.all([
+      const [devicesData, schedulesData, groupsData, roomsData, scenesData, automationsData] = await Promise.all([
         getDevices(),
         getSchedules().catch(() => ({ schedules: [] })),
         getGroups().catch(() => ({ groups: [] })),
-        getRooms().catch(() => ({ rooms: [] }))
+        getRooms().catch(() => ({ rooms: [] })),
+        getScenes().catch(() => ({ scenes: [] })),
+        getAutomations().catch(() => ({ automations: [] }))
       ]);
       const loadedDevices = devicesData.devices || [];
       const loadedRooms = roomsData.rooms || [];
       const loadedGroups = groupsData.groups || [];
+      const loadedScenes = scenesData.scenes || [];
+      const loadedAutomations = automationsData.automations || [];
       
       const finalRooms = loadedRooms.length > 0 ? loadedRooms : defaultRooms;
       const finalDevices = loadedDevices.length > 0 ? loadedDevices : defaultDevices.map(d => ({
@@ -260,6 +419,8 @@ function App() {
       setDevices(finalDevices);
       setSchedules(schedulesData.schedules || []);
       setGroups(loadedGroups.length > 0 ? loadedGroups : defaultGroups);
+      setScenes(loadedScenes.length > 0 ? loadedScenes : defaultScenes);
+      setAutomations(loadedAutomations.length > 0 ? loadedAutomations : defaultAutomations);
     } catch (err) {
       console.error('Failed to load data:', err);
       showMessage('加载数据失败，使用本地数据', 'warning');
@@ -267,6 +428,8 @@ function App() {
       setCurrentRoomId(defaultRooms[0]?.id || null);
       setDevices(defaultDevices);
       setGroups(defaultGroups);
+      setScenes(defaultScenes);
+      setAutomations(defaultAutomations);
     } finally {
       setLoading(false);
     }
@@ -643,6 +806,223 @@ function App() {
     return schedules.filter(s => s.deviceId === deviceId);
   }, [schedules]);
 
+  const handleActivateScene = useCallback(async (sceneId) => {
+    const scene = scenes.find(s => s.id === sceneId);
+    if (!scene) return;
+
+    try {
+      await activateScene(sceneId);
+      scene.deviceStates.forEach(({ deviceId, state }) => {
+        setDevices(prev => prev.map(d =>
+          d.id === deviceId ? { ...d, state: { ...d.state, ...state } } : d
+        ));
+        setSelectedDevice(prev =>
+          prev?.id === deviceId ? { ...prev, state: { ...prev.state, ...state } } : prev
+        );
+        updateDeviceState(deviceId, state).catch(err => console.error('Update device state failed:', err));
+      });
+      setActiveSceneId(sceneId);
+      showMessage(`已激活场景: ${scene.name}`, 'success');
+      setTimeout(() => setActiveSceneId(null), 3000);
+    } catch (err) {
+      console.error('Failed to activate scene:', err);
+      scene.deviceStates.forEach(({ deviceId, state }) => {
+        setDevices(prev => prev.map(d =>
+          d.id === deviceId ? { ...d, state: { ...d.state, ...state } } : d
+        ));
+        setSelectedDevice(prev =>
+          prev?.id === deviceId ? { ...prev, state: { ...prev.state, ...state } } : prev
+        );
+      });
+      setActiveSceneId(sceneId);
+      showMessage(`已激活场景: ${scene.name}`, 'success');
+      setTimeout(() => setActiveSceneId(null), 3000);
+    }
+  }, [scenes, showMessage]);
+
+  const handleCreateScene = useCallback(async (sceneData) => {
+    try {
+      const newScene = {
+        ...sceneData,
+        id: `scene-${Date.now()}`,
+        isPreset: false,
+        createdAt: new Date().toISOString()
+      };
+      const result = await createScene(newScene);
+      const createdScene = result.scene || newScene;
+      setScenes(prev => [...prev, createdScene]);
+      showMessage(`场景 "${createdScene.name}" 已创建`, 'success');
+      return createdScene;
+    } catch (err) {
+      console.error('Failed to create scene:', err);
+      const newScene = {
+        ...sceneData,
+        id: `scene-${Date.now()}`,
+        isPreset: false,
+        createdAt: new Date().toISOString()
+      };
+      setScenes(prev => [...prev, newScene]);
+      showMessage(`场景 "${newScene.name}" 已创建`, 'success');
+      return newScene;
+    }
+  }, [showMessage]);
+
+  const handleUpdateScene = useCallback(async (id, data) => {
+    try {
+      const result = await updateScene(id, data);
+      setScenes(prev => prev.map(s => s.id === id ? result.scene || { ...s, ...data } : s));
+      showMessage('场景已更新', 'success');
+      return result.scene || { ...data, id };
+    } catch (err) {
+      console.error('Failed to update scene:', err);
+      setScenes(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
+      showMessage('场景已更新', 'success');
+      return { ...data, id };
+    }
+  }, [showMessage]);
+
+  const handleDeleteScene = useCallback(async (id) => {
+    try {
+      await deleteScene(id);
+      setScenes(prev => prev.filter(s => s.id !== id));
+      showMessage('场景已删除', 'info');
+    } catch (err) {
+      console.error('Failed to delete scene:', err);
+      setScenes(prev => prev.filter(s => s.id !== id));
+      showMessage('场景已删除', 'info');
+    }
+  }, [showMessage]);
+
+  const handleCreateAutomation = useCallback(async (automationData) => {
+    try {
+      const newAutomation = {
+        ...automationData,
+        id: `auto-${Date.now()}`,
+        isPreset: false,
+        createdAt: new Date().toISOString()
+      };
+      const result = await createAutomation(newAutomation);
+      const createdAutomation = result.automation || newAutomation;
+      setAutomations(prev => [...prev, createdAutomation]);
+      showMessage(`自动化规则 "${createdAutomation.name}" 已创建`, 'success');
+      return createdAutomation;
+    } catch (err) {
+      console.error('Failed to create automation:', err);
+      const newAutomation = {
+        ...automationData,
+        id: `auto-${Date.now()}`,
+        isPreset: false,
+        createdAt: new Date().toISOString()
+      };
+      setAutomations(prev => [...prev, newAutomation]);
+      showMessage(`自动化规则 "${newAutomation.name}" 已创建`, 'success');
+      return newAutomation;
+    }
+  }, [showMessage]);
+
+  const handleUpdateAutomation = useCallback(async (id, data) => {
+    try {
+      const result = await updateAutomation(id, data);
+      setAutomations(prev => prev.map(a => a.id === id ? result.automation || { ...a, ...data } : a));
+      showMessage('自动化规则已更新', 'success');
+      return result.automation || { ...data, id };
+    } catch (err) {
+      console.error('Failed to update automation:', err);
+      setAutomations(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
+      showMessage('自动化规则已更新', 'success');
+      return { ...data, id };
+    }
+  }, [showMessage]);
+
+  const handleDeleteAutomation = useCallback(async (id) => {
+    try {
+      await deleteAutomation(id);
+      setAutomations(prev => prev.filter(a => a.id !== id));
+      showMessage('自动化规则已删除', 'info');
+    } catch (err) {
+      console.error('Failed to delete automation:', err);
+      setAutomations(prev => prev.filter(a => a.id !== id));
+      showMessage('自动化规则已删除', 'info');
+    }
+  }, [showMessage]);
+
+  const handleToggleAutomation = useCallback(async (id, enabled) => {
+    try {
+      await toggleAutomation(id, enabled);
+      setAutomations(prev => prev.map(a =>
+        a.id === id ? { ...a, enabled } : a
+      ));
+      showMessage(`自动化规则已${enabled ? '启用' : '禁用'}`, 'info');
+    } catch (err) {
+      console.error('Failed to toggle automation:', err);
+      setAutomations(prev => prev.map(a =>
+        a.id === id ? { ...a, enabled } : a
+      ));
+      showMessage(`自动化规则已${enabled ? '启用' : '禁用'}`, 'info');
+    }
+  }, [showMessage]);
+
+  const checkAutomationConditions = useCallback(() => {
+    const now = Date.now();
+    const minInterval = 60000;
+
+    automations.forEach(automation => {
+      if (!automation.enabled) return;
+
+      const lastTrigger = automationLastTriggerRef.current[automation.id] || 0;
+      if (now - lastTrigger < minInterval) return;
+
+      let conditionMet = false;
+      const { trigger } = automation;
+
+      if (trigger.type === 'device_state') {
+        const device = devices.find(d => d.id === trigger.deviceId);
+        if (!device) return;
+
+        switch (trigger.condition) {
+          case 'temperature_above':
+            if (device.type === 'ac' && device.state.on) {
+              conditionMet = device.state.temperature > trigger.value;
+            }
+            break;
+          case 'temperature_below':
+            if (device.type === 'ac' && device.state.on) {
+              conditionMet = device.state.temperature < trigger.value;
+            }
+            break;
+          case 'on':
+            conditionMet = device.state.on === trigger.value;
+            break;
+          case 'off':
+            conditionMet = device.state.on !== trigger.value;
+            break;
+          default:
+            break;
+        }
+      } else if (trigger.type === 'time') {
+        const currentTime = new Date();
+        const [hours, minutes] = trigger.value.split(':').map(Number);
+        conditionMet = currentTime.getHours() === hours && currentTime.getMinutes() === minutes;
+      }
+
+      if (conditionMet) {
+        automationLastTriggerRef.current[automation.id] = now;
+        automation.actions.forEach(({ deviceId, state }) => {
+          setDevices(prev => prev.map(d =>
+            d.id === deviceId ? { ...d, state: { ...d.state, ...state } } : d
+          ));
+          updateDeviceState(deviceId, state).catch(err => console.error('Auto action failed:', err));
+        });
+        showMessage(`自动化触发: ${automation.name}`, 'info');
+      }
+    });
+  }, [automations, devices, showMessage]);
+
+  useEffect(() => {
+    const interval = setInterval(checkAutomationConditions, 10000);
+    return () => clearInterval(interval);
+  }, [checkAutomationConditions]);
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -670,6 +1050,12 @@ function App() {
           <span className={`save-status ${isSaving ? 'saving' : 'saved'}`}>
             {isSaving ? '💾 保存中...' : '✓ 自动保存已开启'}
           </span>
+          <button className="btn btn-secondary" onClick={() => setShowSceneManager(true)}>
+            🎬 场景管理
+          </button>
+          <button className="btn btn-secondary" onClick={() => setShowAutomationManager(true)}>
+            ⚙️ 自动化规则
+          </button>
           <button className="btn btn-secondary" onClick={() => setShowRoomManager(true)}>
             🏠 房间管理
           </button>
@@ -697,14 +1083,22 @@ function App() {
       />
 
       <div className="main-content">
-        <DeviceLibrary
-          onAddDevice={handleAddDevice}
-          groups={currentRoomGroups}
-          selectedGroup={selectedGroup}
-          onGroupSelect={handleGroupSelect}
-          onManageGroups={() => setShowGroupManager(true)}
-          currentRoom={currentRoom}
-        />
+        <div className="left-sidebar">
+          <DeviceLibrary
+            onAddDevice={handleAddDevice}
+            groups={currentRoomGroups}
+            selectedGroup={selectedGroup}
+            onGroupSelect={handleGroupSelect}
+            onManageGroups={() => setShowGroupManager(true)}
+            currentRoom={currentRoom}
+          />
+          <SceneQuickPanel
+            scenes={scenes}
+            onActivateScene={handleActivateScene}
+            activeSceneId={activeSceneId}
+            onManageScenes={() => setShowSceneManager(true)}
+          />
+        </div>
         
         <div className="scene-container" onClick={handleSceneClick}>
           <Scene3D
@@ -773,6 +1167,39 @@ function App() {
               onDeleteGroup={handleDeleteGroup}
               onClose={() => setShowGroupManager(false)}
               currentRoomId={currentRoomId}
+            />
+          </div>
+        </div>
+      )}
+
+      {showSceneManager && (
+        <div className="modal-overlay" onClick={() => setShowSceneManager(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <SceneManager
+              scenes={scenes}
+              devices={devices}
+              onCreateScene={handleCreateScene}
+              onUpdateScene={handleUpdateScene}
+              onDeleteScene={handleDeleteScene}
+              onActivateScene={handleActivateScene}
+              onClose={() => setShowSceneManager(false)}
+              activeSceneId={activeSceneId}
+            />
+          </div>
+        </div>
+      )}
+
+      {showAutomationManager && (
+        <div className="modal-overlay" onClick={() => setShowAutomationManager(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <AutomationManager
+              automations={automations}
+              devices={devices}
+              onCreateAutomation={handleCreateAutomation}
+              onUpdateAutomation={handleUpdateAutomation}
+              onDeleteAutomation={handleDeleteAutomation}
+              onToggleAutomation={handleToggleAutomation}
+              onClose={() => setShowAutomationManager(false)}
             />
           </div>
         </div>
